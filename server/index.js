@@ -39,3 +39,34 @@ app.post('/api/login', async (req, res) => {
 
 
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+
+const notasEjemplo = [
+  { id: 1, nombre: "Certamen 1", ponderacion: 30, nota: 4.5 },
+  { id: 2, nombre: "Certamen 2", ponderacion: 35, nota: 5.2 },
+  { id: 3, nombre: "Examen Final", ponderacion: 35, nota: null },
+];
+
+app.get('/api/notas-estudiante', (req, res) => {
+  let sumaActual = 0;
+  let ponderacionAcumulada = 0;
+
+  notasEjemplo.forEach(n => {
+    if (n.nota) {
+      sumaActual += (n.nota * (n.ponderacion / 100));
+      ponderacionAcumulada += n.ponderacion;
+    }
+  });
+
+  const ponderacionRestante = 100 - ponderacionAcumulada;
+  // Fórmula: (4.0 - sumaActual) / (ponderacionRestante / 100)
+  const notaNecesaria = ponderacionRestante > 0 
+    ? ((4.0 - sumaActual) / (ponderacionRestante / 100)).toFixed(1) 
+    : "N/A";
+
+  res.json({
+    asignatura: "Diseño de Software",
+    notas: notasEjemplo,
+    promedioActual: sumaActual.toFixed(2),
+    notaNecesaria: notaNecesaria > 1 ? notaNecesaria : "Aprobado"
+  });
+});
