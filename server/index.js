@@ -15,7 +15,6 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("¡Conectado exitosamente a MongoDB!"))
   .catch((err) => console.error("Error al conectar a MongoDB:", err));
 
-// Ruta de prueba
 app.get('/', (req, res) => {
   res.send('Servidor MERN funcionando correctamente');
 });
