@@ -1,103 +1,177 @@
 import React, { useState } from 'react';
 
 function App() {
-  const [logueado, setLogueado] = useState(false);
-  const [datosAcademicos, setDatosAcademicos] = useState(null);
+  // Estados para el login y control de sesión
+  const [correo, setCorreo] = useState('');
+  const [password, setPassword] = useState('');
+  const [usuarioLogueado, setUsuarioLogueado] = useState(null);
   const [error, setError] = useState('');
 
-  const obtenerRendimientoYLogin = async (e) => {
-    if(e) e.preventDefault(); 
-    
-    try {
-      const resp = await fetch('http://localhost:5000/api/notas-estudiante');
-      
-      if (!resp.ok) throw new Error("Error en el servidor");
+  // Estados para el formulario de registro (Solo visible para el Admin)
+  const [nuevoUsuario, setNuevoUsuario] = useState({
+    nombre: '', correo: '', password: '', rol: 'Estudiante', carrera: ''
+  });
+  const [msgRegistro, setMsgRegistro] = useState('');
 
+  // FUNCIÓN 1: Enviar datos de Login al Backend
+  const manejarLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const resp = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo, password })
+      });
       const data = await resp.json();
-      
-      setDatosAcademicos(data);
-      
-      setLogueado(true);
-      setError('');
+
+      if (data.success) {
+        // Guardamos el token en el almacenamiento del navegador por seguridad
+        localStorage.setItem('token', data.token);
+        setUsuarioLogueado(data.user);
+      } else {
+        setError(data.msg || 'Error al iniciar sesión');
+      }
     } catch (err) {
-      setError('No se pudo conectar con el backend. ¿Está encendido node index.js?');
+      setError('No se pudo conectar con el servidor backend.');
     }
+  };
+
+  // FUNCIÓN 2: Crear usuarios desde el panel de Admin
+  const manejarRegistro = async (e) => {
+    e.preventDefault();
+    setMsgRegistro('');
+    try {
+      const resp = await fetch('http://localhost:5000/api/auth/registrar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoUsuario)
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        setMsgRegistro(`✅ ${data.msg}`);
+        // Limpiar formulario de registro
+        setNuevoUsuario({ nombre: '', correo: '', password: '', rol: 'Estudiante', carrera: '' });
+      } else {
+        setMsgRegistro(`❌ ${data.msg}`);
+      }
+    } catch (err) {
+      setMsgRegistro('❌ Error de conexión al registrar usuario.');
+    }
+  };
+
+  const cerrarSesion = () => {
+    localStorage.removeItem('token');
+    setUsuarioLogueado(null);
+    setCorreo('');
+    setPassword('');
   };
 
   return (
     <div style={{ fontFamily: 'Segoe UI, sans-serif', padding: '30px', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
-      
-      <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <h1 style={{ color: '#004a99' }}>SGAU - Universidad Católica de Temuco</h1>
-        <p>Prototipo Primera Entrega - Grupo 3</p>
+      <header style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <h1 style={{ color: '#004a99', margin: 0 }}>SGAU - Universidad Católica de Temuco</h1>
+        <p style={{ color: '#555' }}>Gestión Académica & Rendimiento Predictivo</p>
       </header>
 
-      {/* VISTA 1: LOGIN (Si no está logueado, muestra esto) */}
-      {!logueado ? (
-        <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(14, 15, 17, 0.1)', maxWidth: '400px', margin: 'auto' }}>
-          <h2 style={{ textAlign: 'center', color: '#004a99' }}>Iniciar Sesión</h2>
-          {error && <p style={{ color: '#004a99', fontSize: '14px' }}>{error}</p>}
+      {/* VISTA 1: LOGIN (Si no hay sesión iniciada) */}
+      {!usuarioLogueado ? (
+        <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 8px 20px rgba(0,0,0,0.1)', maxWidth: '400px', margin: 'auto' }}>
+          <h2 style={{ textAlign: 'center', color: '#333', marginTop: 0 }}>Iniciar Sesión</h2>
+          {error && <p style={{ color: 'white', backgroundColor: '#e53e3e', padding: '10px', borderRadius: '5px', fontSize: '14px' }}>{error}</p>}
           
-          <input type="email" placeholder="Correo institucional" style={inputStyle} />
-          <input type="password" placeholder="Contraseña" style={inputStyle} />
-          
-          <button 
-            onClick={obtenerRendimientoYLogin} 
-            style={buttonStyle}
-          >
-            Entrar como Estudiante
-          </button>
+          <form onSubmit={manejarLogin}>
+            <input 
+              type="email" placeholder="Correo institucional" required value={correo}
+              onChange={(e) => setCorreo(e.target.value)} style={inputStyle} 
+            />
+            <input 
+              type="password" placeholder="Contraseña" required value={password}
+              onChange={(e) => setPassword(e.target.value)} style={inputStyle} 
+            />
+            <button type="submit" style={buttonStyle}>Ingresar al Sistema</button>
+          </form>
         </div>
       ) : (
-        /* VISTA 2: PANEL PREDICTIVO (Si está logueado, muestra la tabla) */
-        <div style={{ maxWidth: '900px', margin: 'auto', background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Rendimiento: {datosAcademicos?.asignatura}</h2>
-            <button onClick={() => setLogueado(false)} style={{ color: 'red', cursor: 'pointer', border: 'none', background: 'none' }}>Cerrar Sesión</button>
-          </div>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#004a99', color: 'white' }}>
-                <th style={thStyle}>Evaluación</th>
-                <th style={thStyle}>Ponderación</th>
-                <th style={thStyle}>Nota Actual</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datosAcademicos?.notas.map(n => (
-                <tr key={n.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={tdStyle}>{n.nombre}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>{n.ponderacion}%</td>
-                  <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 'bold', color: n.nota < 4 ? 'red' : 'black' }}>
-                    {n.nota || 'Pendiente'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* EL "MOTOR DE CÁLCULO" VISUALIZADO */}
-          <div style={panelPredictivoStyle}>
-            <h3 style={{ marginTop: 0 }}>Panel Predictivo (Error 0%)</h3>
-            <p>Tu promedio ponderado actual es: <span style={{ fontSize: '1.4em', fontWeight: 'bold' }}>{datosAcademicos?.promedioActual}</span></p>
-            <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '8px', border: '1px solid #2196f3' }}>
-              <p style={{ margin: 0, color: '#004a99', fontWeight: 'bold' }}>
-                🎯 Nota mínima necesaria en los ítems restantes para aprobar con 4.0:
-              </p>
-              <h2 style={{ margin: '10px 0 0 0', color: '#d32f2f' }}>{datosAcademicos?.notaNecesaria}</h2>
+        /* VISTA 2: PANELES SEGÚN EL ROL */
+        <div style={{ maxWidth: '800px', margin: 'auto', background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Bienvenido, {usuarioLogueado.nombre}</h2>
+              <span style={{ backgroundColor: '#004a99', color: 'white', padding: '3px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold' }}>
+                Rol: {usuarioLogueado.rol}
+              </span>
             </div>
+            <button onClick={cerrarSesion} style={{ color: '#e53e3e', cursor: 'pointer', border: '1px solid #e53e3e', background: 'none', padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold' }}>
+              Cerrar Sesión
+            </button>
           </div>
+
+          {/* CASO A: PANEL DEL ADMINISTRADOR (Registrar Usuarios) */}
+          {usuarioLogueado.rol === 'Admin' && (
+            <div style={{ marginTop: '20px' }}>
+              <h3>⚙️ Panel de Gestión de Usuarios (Exclusivo Admin)</h3>
+              <p>Como Administrador institucional, puedes registrar Docentes y Estudiantes en MongoDB Atlas.</p>
+              
+              {msgRegistro && <p style={{ padding: '10px', borderRadius: '5px', backgroundColor: '#edf2f7', fontWeight: 'bold' }}>{msgRegistro}</p>}
+
+              <form onSubmit={manejarRegistro} style={{ display: 'grid', gap: '10px', background: '#f7fafc', padding: '20px', borderRadius: '8px' }}>
+                <input 
+                  type="text" placeholder="Nombre completo" required value={nuevoUsuario.nombre}
+                  onChange={(e) => setNuevoUsuario({...nuevoUsuario, nombre: e.target.value})} style={inputStyle}
+                />
+                <input 
+                  type="email" placeholder="Correo electrónico" required value={nuevoUsuario.correo}
+                  onChange={(e) => setNuevoUsuario({...nuevoUsuario, correo: e.target.value})} style={inputStyle}
+                />
+                <input 
+                  type="password" placeholder="Contraseña inicial" required value={nuevoUsuario.password}
+                  onChange={(e) => setNuevoUsuario({...nuevoUsuario, password: e.target.value})} style={inputStyle}
+                />
+                <select 
+                  value={nuevoUsuario.rol} 
+                  onChange={(e) => setNuevoUsuario({...nuevoUsuario, rol: e.target.value})} style={inputStyle}
+                >
+                  <option value="Estudiante">Estudiante</option>
+                  <option value="Docente">Docente</option>
+                </select>
+                
+                {nuevoUsuario.rol === 'Estudiante' && (
+                  <input 
+                    type="text" placeholder="Carrera (Ej: Ingeniería Civil Informática)" value={nuevoUsuario.carrera}
+                    onChange={(e) => setNuevoUsuario({...nuevoUsuario, carrera: e.target.value})} style={inputStyle}
+                  />
+                )}
+
+                <button type="submit" style={{ ...buttonStyle, backgroundColor: '#2b6cb0' }}>Registrar en la Base de Datos</button>
+              </form>
+            </div>
+          )}
+
+          {/* CASO B: PANEL DEL DOCENTE (Pendiente para el Hito 2) */}
+          {usuarioLogueado.rol === 'Docente' && (
+            <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#feebc8', borderRadius: '8px' }}>
+              <h3>👨‍🏫 Panel del Docente</h3>
+              <p>Próximamente: Aquí podrás crear tus asignaturas, ponderaciones y subir calificaciones.</p>
+            </div>
+          )}
+
+          {/* CASO C: PANEL DEL ESTUDIANTE (Pendiente para el Hito 4) */}
+          {usuarioLogueado.rol === 'Estudiante' && (
+            <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#e2e8f0', borderRadius: '8px' }}>
+              <h3>🎓 Panel de Rendimiento Académico</h3>
+              <p>Próximamente: Visualización de tus asignaturas inscritas y cálculo predictivo (error del 0%).</p>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-const inputStyle = { width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' };
-const buttonStyle = { width: '100%', padding: '12px', backgroundColor: '#004a99', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' };
-const thStyle = { padding: '15px', textAlign: 'left' };
-const tdStyle = { padding: '15px' };
-const panelPredictivoStyle = { marginTop: '30px', padding: '25px', backgroundColor: '#e3f2fd', borderRadius: '10px', borderLeft: '8px solid #004a99' };
+// Estilos limpios inline
+const inputStyle = { width: '100%', padding: '10px', marginBottom: '5px', borderRadius: '6px', border: '1px solid #cbd5e0', boxSizing: 'border-box' };
+const buttonStyle = { width: '100%', padding: '12px', backgroundColor: '#004a99', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', transition: 'background 0.2s' };
 
 export default App;
