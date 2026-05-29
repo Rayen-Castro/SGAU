@@ -34,3 +34,16 @@ Finalmente, para el desarrollo de este sistema, hemos seleccionado el stack MERN
 * Express.js (Backend): Actuará como el framework del servidor, gestionando las rutas de la API, la autenticación de usuarios y la lógica de negocio detrás del cálculo de promedios.
 * React (Frontend): Se empleará para construir una interfaz de usuario interactiva y reactiva. Esto permitirá que los estudiantes vean las actualizaciones de sus promedios y el rendimiento académico en tiempo real sin necesidad de recargar el sitio.
 * Node.js (Entorno de ejecución): Proporcionará el entorno necesario para ejecutar el servidor en el backend, garantizando una comunicación eficiente y rápida entre la base de datos y la interfaz de usuario.
+
+---
+
+### Ejecución
+En Terminal:
+
+1. cd server
+2. node index.js
+3. (abre una segunda terminal)
+4. npm run dev
+
+entra a > http://localhost:5173/
+(el local host es solo temporal hasta que la pagina web sea estable)
