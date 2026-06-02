@@ -24,7 +24,6 @@ function App() {
     "Medicina Veterinaria"
   ];
 
-  // Función para traer los usuarios desde MongoDB Atlas
   const consultarUsuarios = async () => {
     try {
       const resp = await fetch('http://localhost:5000/api/auth/usuarios');
