@@ -141,6 +141,9 @@ function App() {
                 <form onSubmit={manejarRegistro} style={{ display: 'grid', gap: '10px', background: '#f7fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <input type="text" placeholder="Nombre completo" required value={nuevoUsuario.nombre} onChange={(e) => setNuevoUsuario({...nuevoUsuario, nombre: e.target.value})} style={inputStyle} />
                   <input type="email" placeholder="Correo electrónico" required value={nuevoUsuario.correo} onChange={(e) => setNuevoUsuario({...nuevoUsuario, correo: e.target.value})} style={inputStyle} />
+                    <p style={{ fontSize: '12px', color: '#718096', marginTop: '-2px', marginBottom: '10px', paddingLeft: '2px', fontStyle: 'italic' }}>
+                    <strong> {nuevoUsuario.rol === 'Estudiante' ? '@alu.uct.cl' : '@uct.cl'}</strong>
+                    </p>
                   <input type="password" placeholder="Contraseña inicial" required value={nuevoUsuario.password} onChange={(e) => setNuevoUsuario({...nuevoUsuario, password: e.target.value})} style={inputStyle} />
                   
                   <label style={{ fontSize: '14px', fontWeight: 'bold', color: '#4a5568' }}>Tipo de Usuario:</label>

@@ -2,13 +2,30 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// server/controllers/authController.js
+
 exports.registrarUsuario = async (req, res) => {
-    const { nombre, correo, password, rol, carrera } = req.body;
+    let { nombre, correo, password, rol, carrera } = req.body;
 
     try {
+        let usuarioLimpio = correo.trim().toLowerCase();
+        
+        usuarioLimpio = usuarioLimpio.split('@')[0];
+        
+        usuarioLimpio = usuarioLimpio.replace('.alu', '').replace('alu', '');
+        
+        if (usuarioLimpio.endsWith('.')) {
+            usuarioLimpio = usuarioLimpio.slice(0, -1);
+        }
+
+        if (rol === 'Estudiante') {
+            correo = `${usuarioLimpio}@alu.uct.cl`;
+        } else if (rol === 'Docente') {
+            correo = `${usuarioLimpio}@uct.cl`;
+        }
         let usuarioExiste = await User.findOne({ correo });
         if (usuarioExiste) {
-            return res.status(400).json({ msg: 'El correo ya está registrado en el SGAU' });
+            return res.status(400).json({ msg: `El correo institucional ${correo} ya está registrado en el sistema.` });
         }
 
         const nuevoUsuario = new User({ nombre, correo, password, rol, carrera });
@@ -20,7 +37,7 @@ exports.registrarUsuario = async (req, res) => {
 
         res.status(201).json({ 
             success: true, 
-            msg: `Usuario con rol [${rol}] creado exitosamente.` 
+            msg: `Usuario [${rol}] creado con éxito. Correo asignado: ${correo}` 
         });
 
     } catch (error) {
@@ -28,7 +45,6 @@ exports.registrarUsuario = async (req, res) => {
         res.status(500).send('Error al registrar usuario');
     }
 };
-
 exports.login = async (req, res) => {
     const { correo, password } = req.body;
 
