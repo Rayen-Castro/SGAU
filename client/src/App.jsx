@@ -37,6 +37,24 @@ function App() {
     }
   };
 
+  const consultarUsuarios = async () => {
+    try {
+      const resp = await fetch('http://localhost:5000/api/auth/usuarios');
+      const data = await resp.json();
+      if (data.success) {
+        setListaUsuarios(data.usuarios);
+      }
+    } catch (err) {
+      console.error("Error al traer usuarios", err);
+    }
+  };
+
+  useEffect(() => {
+    if (usuarioLogueado && usuarioLogueado.rol === 'Admin') {
+      consultarUsuarios();
+    }
+  }, [usuarioLogueado]);
+
   const manejarLogin = async (e) => {
     e.preventDefault();
     setError('');
