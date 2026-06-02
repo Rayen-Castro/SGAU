@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 
 function App() {
-  // Estados para el login y control de sesión
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [usuarioLogueado, setUsuarioLogueado] = useState(null);
   const [error, setError] = useState('');
 
-  // Estados para el formulario de registro (Solo visible para el Admin)
   const [nuevoUsuario, setNuevoUsuario] = useState({
     nombre: '', correo: '', password: '', rol: 'Estudiante', carrera: ''
   });
   const [msgRegistro, setMsgRegistro] = useState('');
 
-  // FUNCIÓN 1: Enviar datos de Login al Backend
   const manejarLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -26,7 +23,6 @@ function App() {
       const data = await resp.json();
 
       if (data.success) {
-        // Guardamos el token en el almacenamiento del navegador por seguridad
         localStorage.setItem('token', data.token);
         setUsuarioLogueado(data.user);
       } else {
@@ -37,7 +33,6 @@ function App() {
     }
   };
 
-  // FUNCIÓN 2: Crear usuarios desde el panel de Admin
   const manejarRegistro = async (e) => {
     e.preventDefault();
     setMsgRegistro('');
@@ -51,7 +46,6 @@ function App() {
 
       if (data.success) {
         setMsgRegistro(`✅ ${data.msg}`);
-        // Limpiar formulario de registro
         setNuevoUsuario({ nombre: '', correo: '', password: '', rol: 'Estudiante', carrera: '' });
       } else {
         setMsgRegistro(`❌ ${data.msg}`);

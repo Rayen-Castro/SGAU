@@ -71,3 +71,13 @@ exports.login = async (req, res) => {
         res.status(500).send('Error en el servidor durante el login');
     }
 };
+
+exports.obtenerUsuarios = async (req, res) => {
+    try {
+        const usuarios = await User.find().select('-password');
+        res.json({ success: true, usuarios });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error al obtener los usuarios');
+    }
+};
