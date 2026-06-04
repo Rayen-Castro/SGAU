@@ -144,7 +144,6 @@ function App() {
       if (data.success) {
         setMsgAsignatura(`✅ ${data.msg}`);
         consultarAsignaturas();
-        // Limpiar formulario
         setNombreAsignatura('');
         setCodigoAsignatura('');
         setEstudiantesSeleccionados([]);
@@ -284,19 +283,64 @@ function App() {
                         Suma actual: {evaluaciones.reduce((t, e) => t + Number(e.ponderacion), 0)}%
                       </div>
                     </div>
-
-                    {/* Inscribir Alumnos mediante Checkboxes */}
+                        
+                    {/* Inscribir Alumnos mediante Checkboxes con FILTRO INTERACTIVO */}
                     <div>
-                      <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a5568' }}>🎓 Inscribir Estudiantes:</label>
-                      <div style={{ background: 'white', border: '1px solid #cbd5e0', borderRadius: '6px', padding: '10px', maxHeight: '120px', overflowY: 'auto', marginTop: '5px' }}>
-                        {estudiantesDisponibles.length === 0 ? <p style={{ fontSize: '12px', color: '#718096', margin: 0 }}>No hay estudiantes registrados aún.</p> : 
-                          estudiantesDisponibles.map(est => (
-                            <div key={est._id} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px', fontSize: '13px' }}>
-                              <input type="checkbox" id={est._id} checked={estudiantesSeleccionados.includes(est._id)} onChange={() => manejarCheckboxEstudiante(est._id)} style={{ marginRight: '8px' }} />
-                              <label htmlFor={est._id}><strong>{est.nombre}</strong> - <span style={{ color: '#4a5568' }}>{est.carrera}</span></label>
-                            </div>
-                          ))
-                        }
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a5568' }}>🎓 Inscribir Estudiantes:</label>
+                        
+                        {/* 🔥 NUEVO FILTRO EN TIEMPO REAL */}
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ color: '#718096', marginRight: '5px' }}>Filtrar por carrera:</span>
+                          <select 
+                            id="filtroCarreraEstudiantes"
+                            style={{ padding: '2px 5px', borderRadius: '4px', border: '1px solid #cbd5e0', fontSize: '12px', backgroundColor: '#fff' }}
+                            onChange={(e) => {
+                              // Guardamos la carrera seleccionada en un atributo temporal del DOM o estado
+                              window.carreraFiltrada = e.target.value;
+                              // Forzamos un re-renderizado rápido de React simulando un cambio cosmético
+                              setNombreAsignatura(prev => prev); 
+                            }}
+                          >
+                            <option value="TODAS">-- Todas las Carreras --</option>
+                            {carrerasDisponibles.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ background: 'white', border: '1px solid #cbd5e0', borderRadius: '6px', padding: '10px', maxHeight: '120px', overflowY: 'auto' }}>
+                        {estudiantesDisponibles.length === 0 ? (
+                          <p style={{ fontSize: '12px', color: '#718096', margin: 0 }}>No hay estudiantes registrados aún.</p>
+                        ) : (
+                          estudiantesDisponibles
+                            .filter(est => {
+                              // Si el filtro está en "TODAS" o no se ha definido, pasan todos
+                              if (!window.carreraFiltrada || window.carreraFiltrada === 'TODAS') return true;
+                              // Si hay filtro, solo pasan los que coincidan exactamente con la carrera
+                              return est.carrera === window.carreraFiltrada;
+                            })
+                            .map(est => (
+                              <div key={est._id} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px', fontSize: '13px' }}>
+                                <input 
+                                  type="checkbox" 
+                                  id={est._id} 
+                                  checked={estudiantesSeleccionados.includes(est._id)} 
+                                  onChange={() => manejarCheckboxEstudiante(est._id)} 
+                                  style={{ marginRight: '8px' }} 
+                                />
+                                <label htmlFor={est._id}>
+                                  <strong>{est.nombre}</strong> - <span style={{ color: '#4a5568', fontSize: '12px' }}>{est.carrera}</span>
+                                </label>
+                              </div>
+                            ))
+                        )}
+                        {/* Mensaje de ayuda si el filtro deja la lista vacía */}
+                        {window.carreraFiltrada && window.carreraFiltrada !== 'TODAS' && 
+                        estudiantesDisponibles.filter(est => est.carrera === window.carreraFiltrada).length === 0 && (
+                          <p style={{ fontSize: '11px', color: '#e53e3e', margin: '5px 0 0 0', fontStyle: 'italic' }}>
+                            ⚠️ No hay alumnos registrados en esta carrera específica para este semestre.
+                          </p>
+                        )}
                       </div>
                     </div>
 
