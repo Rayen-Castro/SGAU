@@ -1,4 +1,4 @@
-// server/models/Subject.js
+// server/models/Asignatura.js
 const mongoose = require('mongoose');
 
 const EvaluacionSchema = new mongoose.Schema({
@@ -28,4 +28,4 @@ const AsignaturaSchema = new mongoose.Schema({
     evaluaciones: [EvaluacionSchema]
 }, { timestamps: true });
 
-module.exports = mongoose.model('Subject', AsignaturaSchema);
+module.exports = mongoose.model('asignatura', AsignaturaSchema);

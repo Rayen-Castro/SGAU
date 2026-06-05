@@ -26,6 +26,13 @@ function App() {
   const [evaluaciones, setEvaluaciones] = useState([{ nombreEval: 'Certamen 1', ponderacion: 50 }, { nombreEval: 'Certamen 2', ponderacion: 50 }]);
   const [msgAsignatura, setMsgAsignatura] = useState('');
   const [listaAsignaturas, setListaAsignaturas] = useState([]);
+  const [carreraFiltradaAdmin, setCarreraFiltradaAdmin] = useState('TODAS');
+
+  // --- 🔥 ESTADOS EXCLUSIVOS DEL DOCENTE (HITO 3) ---
+  const [asignaturasDocente, setAsignaturasDocente] = useState([]);
+  const [asignaturaActiva, setAsignaturaActiva] = useState(null);
+  const [baseNotas, setBaseNotas] = useState([]); // Matriz global de notas traídas del servidor
+  const [msgNotas, setMsgNotas] = useState('');
 
   // --- FUNCIONES API ---
   const consultarUsuarios = async () => {
@@ -38,18 +45,48 @@ function App() {
 
   const consultarAsignaturas = async () => {
     try {
-      const resp = await fetch('http://localhost:5000/api/subjects');
+      const resp = await fetch('http://localhost:5000/api/asignatura');
       const data = await resp.json();
       if (data.success) setListaAsignaturas(data.asignaturas);
     } catch (err) { console.error("Error al traer asignaturas", err); }
   };
 
+  // Traer ramos específicos del docente logueado
+  const consultarAsignaturasDocente = async (docenteId) => {
+    try {
+      const resp = await fetch(`http://localhost:5000/api/asignatura/docente/${docenteId}`);
+      const data = await resp.json();
+      if (data.success) setAsignaturasDocente(data.asignaturas);
+    } catch (err) { console.error("Error al traer ramos del docente", err); }
+  };
+
+  // Traer bitácora de notas de la asignatura activa para cruzar datos
+  const consultarNotasAsignatura = async (asignaturaId) => {
+    try {
+      const resp = await fetch(`http://localhost:5000/api/grades/asignatura/${asignaturaId}`);
+      const data = await resp.json();
+      if (data.success) setBaseNotas(data.notas);
+    } catch (err) { console.error("Error al traer notas", err); }
+  };
+
   useEffect(() => {
-    if (usuarioLogueado && usuarioLogueado.rol === 'Admin') {
-      consultarUsuarios();
-      consultarAsignaturas();
+    if (usuarioLogueado) {
+      if (usuarioLogueado.rol === 'Admin') {
+        consultarUsuarios();
+        consultarAsignaturas();
+      } else if (usuarioLogueado.rol === 'Docente') {
+        consultarAsignaturasDocente(usuarioLogueado.id || usuarioLogueado._id);
+      }
     }
   }, [usuarioLogueado]);
+
+  // Ejecutar recarga de notas cuando el docente cambia de ramo activo
+  useEffect(() => {
+    if (asignaturaActiva) {
+      consultarNotasAsignatura(asignaturaActiva._id);
+    }
+  }, [asignaturaActiva]);
+
 
   const manejarLogin = async (e) => {
     e.preventDefault();
@@ -88,70 +125,124 @@ function App() {
     } catch (err) { setMsgRegistro('❌ Error al registrar usuario.'); }
   };
 
-  // --- LÓGICA DINÁMICA DE EVALUACIONES (HITO 2) ---
-  const agregarFilaEvaluacion = () => {
-    setEvaluaciones([...evaluaciones, { nombreEval: '', ponderacion: 0 }]);
-  };
-
+  // --- LÓGICA DE ASIGNATURAS ADMIN ---
+  const agregarFilaEvaluacion = () => setEvaluaciones([...evaluaciones, { nombreEval: '', ponderacion: 0 }]);
+  const eliminarFilaEvaluacion = (index) => setEvaluaciones(evaluaciones.filter((_, i) => i !== index));
   const actualizarFilaEvaluacion = (index, campo, valor) => {
     const nuevasEval = [...evaluaciones];
     nuevasEval[index][campo] = valor;
     setEvaluaciones(nuevasEval);
   };
-
-  const eliminarFilaEvaluacion = (index) => {
-    setEvaluaciones(evaluaciones.filter((_, i) => i !== index));
-  };
-
   const manejarCheckboxEstudiante = (id) => {
     if (estudiantesSeleccionados.includes(id)) {
       setEstudiantesSeleccionados(estudiantesSeleccionados.filter(eId => eId !== id));
-    } else {
-      setEstudiantesSeleccionados([...estudiantesSeleccionados, id]);
-    }
+    } else { setEstudiantesSeleccionados([...estudiantesSeleccionados, id]); }
   };
 
-  const manejarCrearAsignatura = async (e) => {
+const manejarCrearAsignatura = async (e) => {
     e.preventDefault();
     setMsgAsignatura('');
 
-    if (!docenteSeleccionado) {
-      setMsgAsignatura('❌ Debes seleccionar un docente para la asignatura.');
-      return;
-    }
-    if (estudiantesSeleccionados.length === 0) {
-      setMsgAsignatura('❌ Debes seleccionar al menos un estudiante.');
+    if (!docenteSeleccionado || estudiantesSeleccionados.length === 0) {
+      setMsgAsignatura('❌ Falta asignar docente o estudiantes.'); 
       return;
     }
 
-    const payload = {
-      nombreAsignatura,
-      codigo: codigoAsignatura,
-      periodo,
-      docenteId: docenteSeleccionado,
-      estudiantesIds: estudiantesSeleccionados,
-      evaluaciones
-    };
+    // regla de negocio: la suma de las ponderaciones debe ser exactamente 100%
+    const sumaPonderaciones = evaluaciones.reduce((total, ev) => total + (parseInt(ev.ponderacion) || 0), 0);
+    if (sumaPonderaciones !== 100) {
+      setMsgAsignatura(`❌ Error: La suma de las ponderaciones es ${sumaPonderaciones}%. Debe ser exactamente 100% para poder registrar la asignatura.`);
+      return;
+    }
 
     try {
-      const resp = await fetch('http://localhost:5000/api/subjects/crear', {
+      const resp = await fetch('http://localhost:5000/api/asignatura/crear', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          nombreAsignatura, 
+          codigo: codigoAsignatura, 
+          periodo,
+          docenteId: docenteSeleccionado, 
+          estudiantesIds: estudiantesSeleccionados, 
+          evaluaciones 
+        })
+      });
+      
+      const data = await resp.json();
+      if (data.success) {
+        setMsgAsignatura(`✅ ${data.msg}`); 
+        consultarAsignaturas();
+        // Limpiamos el formulario tras el éxito
+        setNombreAsignatura(''); 
+        setCodigoAsignatura(''); 
+        setEstudiantesSeleccionados([]);
+      } else { 
+        setMsgAsignatura(`❌ ${data.msg || 'Error al crear asignatura en el servidor'}`); 
+      }
+    } catch (err) { 
+      setMsgAsignatura('❌ Error de red: Asegúrate de que las evaluaciones tengan nombre y que el backend esté corriendo.'); 
+    }
+  };
+
+  // --- 🔥 LÓGICA DE CALIFICACIONES DOCENTE (HITO 3) ---
+  
+  // Helper para buscar una nota guardada en nuestra baseNotas local
+  const buscarNotaEnBase = (estudianteId, nombreEval) => {
+    return baseNotas.find(n => n.estudiante === estudianteId && n.nombreEval === nombreEval);
+  };
+
+  // Guardar nota individual en Atlas
+  const guardarNotaServidor = async (estudianteId, nombreEval, valorNota) => {
+    setMsgNotas('');
+    const notaNum = parseFloat(valorNota);
+
+    // Validación visual de rango
+    if (!valorNota) return; // Si limpian el input, no hacer nada aún
+    if (notaNum < 1.0 || notaNum > 7.0) {
+      setMsgNotas('❌ Error: Las calificaciones deben estar estrictamente entre 1.0 y 7.0');
+      return;
+    }
+
+    try {
+      const resp = await fetch('http://localhost:5000/api/grades/guardar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estudianteId,
+          asignaturaId: asignaturaActiva._id,
+          nombreEval,
+          calificacion: notaNum,
+          profesorId: usuarioLogueado.id || usuarioLogueado._id
+        })
       });
       const data = await resp.json();
-
       if (data.success) {
-        setMsgAsignatura(`✅ ${data.msg}`);
-        consultarAsignaturas();
-        setNombreAsignatura('');
-        setCodigoAsignatura('');
-        setEstudiantesSeleccionados([]);
-        setEvaluaciones([{ nombreEval: 'Certamen 1', ponderacion: 50 }, { nombreEval: 'Certamen 2', ponderacion: 50 }]);
-      } else {
-        setMsgAsignatura(`❌ ${data.msg}`);
+        // Refrescamos la bitácora para actualizar fechas de modificación en tiempo real
+        consultarNotasAsignatura(asignaturaActiva._id);
       }
-    } catch (err) { setMsgAsignatura('❌ Error de red al crear asignatura.'); }
+    } catch (err) {
+      setMsgNotas('❌ Error de red al procesar calificación.');
+    }
+  };
+
+  // Calcular el promedio acumulado real de un estudiante considerando solo las notas ingresadas
+  const calcularPromedioPonderado = (estudianteId) => {
+    let sumaPuntos = 0;
+    let sumaPonderacionesConNota = 0;
+
+    asignaturaActiva.evaluaciones.forEach(ev => {
+      const registro = buscarNotaEnBase(estudianteId, ev.nombreEval);
+      if (registro) {
+        sumaPuntos += (registro.calificacion * ev.ponderacion);
+        sumaPonderacionesConNota += ev.ponderacion;
+      }
+    });
+
+    if (sumaPonderacionesConNota === 0) return '-';
+    // Dividimos por la ponderación acumulada parcial para simular la nota real del momento
+    const promedio = (sumaPuntos / sumaPonderacionesConNota);
+    return promedio.toFixed(2);
   };
 
   const cerrarSesion = () => {
@@ -159,11 +250,12 @@ function App() {
     setUsuarioLogueado(null);
     setListaUsuarios([]);
     setListaAsignaturas([]);
+    setAsignaturasDocente([]);
+    setAsignaturaActiva(null);
   };
 
-  // Filtrar usuarios por rol para los selectores
-  const docentesDisponibles = listaUsuarios.filter(u => u.role === 'Docente' || u.rol === 'Docente');
-  const estudiantesDisponibles = listaUsuarios.filter(u => u.role === 'Estudiante' || u.rol === 'Estudiante');
+  const docentesDisponibles = listaUsuarios.filter(u => u.rol === 'Docente');
+  const estudiantesDisponibles = listaUsuarios.filter(u => u.rol === 'Estudiante');
 
   return (
     <div style={{ fontFamily: 'Segoe UI, sans-serif', padding: '20px', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
@@ -192,10 +284,12 @@ function App() {
             <button onClick={cerrarSesion} style={{ color: '#e53e3e', cursor: 'pointer', border: '1px solid #e53e3e', background: 'none', padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold' }}>Cerrar Sesión</button>
           </div>
 
+          {/* ========================================================= */}
+          {/* PANAL DEL ADMINISTRADOR (HITOS 1 Y 2)                     */}
+          {/* ========================================================= */}
           {usuarioLogueado.rol === 'Admin' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '40px' }}>
-              
-              {/* SECCIÓN 1: GESTIÓN DE USUARIOS (HITO 1) */}
+              {/* Bloques de gestión usuarios y asignaturas (Igual que antes) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderBottom: '2px dashed #e2e8f0', paddingBottom: '30px' }}>
                 <div>
                   <h3>⚙️ Registrar Nuevo Usuario (Hito 1)</h3>
@@ -222,14 +316,14 @@ function App() {
                   <div style={{ maxHeight: '230px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead style={{ backgroundColor: '#edf2f7', position: 'sticky', top: 0 }}>
-                        <tr><th style={{ padding: '8px', textAlign: 'left' }}>Nombre / Correo</th><th style={{ padding: '8px', textAlign: 'left' }}>Rol</th><th style={{ padding: '8px', textAlign: 'left' }}>Carrera</th></tr>
+                        <tr><th style={{ padding: '8px', textAlign: 'left' }}>Nombre</th><th style={{ padding: '8px', textAlign: 'left' }}>Rol</th><th style={{ padding: '8px', textAlign: 'left' }}>Carrera</th></tr>
                       </thead>
                       <tbody>
                         {listaUsuarios.map(u => (
                           <tr key={u._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                             <td style={{ padding: '8px' }}><strong>{u.nombre}</strong><br/><span style={{ color: '#718096', fontSize: '11px' }}>{u.correo}</span></td>
-                            <td style={{ padding: '8px' }}><span style={{ fontSize: '11px', padding: '2px 5px', borderRadius: '4px', fontWeight: 'bold', backgroundColor: u.rol === 'Docente' ? '#feebc8' : u.rol === 'Admin' ? '#e2e8f0' : '#e2f0d9' }}>{u.rol}</span></td>
-                            <td style={{ padding: '8px', color: '#4a5568' }}>{u.carrera || 'N/A'}</td>
+                            <td style={{ padding: '8px' }}><span style={{ fontSize: '11px', padding: '2px 5px', borderRadius: '4px', fontWeight: 'bold', backgroundColor: u.rol === 'Docente' ? '#feebc8' : '#e2f0d9' }}>{u.rol}</span></td>
+                            <td style={{ padding: '8px' }}>{u.carrera || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -238,152 +332,239 @@ function App() {
                 </div>
               </div>
 
-              {/* SECCIÓN 2: CREACIÓN DE ASIGNATURAS (HITO 2) */}
+              {/* Formulario de Asignaturas */}
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '30px' }}>
                 <div>
-                  <h3>📘 Configurar Nueva Asignatura y Ponderaciones (Hito 2)</h3>
+                  <h3>📘 Configurar Nueva Asignatura (Hito 2)</h3>
                   {msgAsignatura && <p style={{ padding: '10px', borderRadius: '5px', backgroundColor: '#e2e8f0', fontWeight: 'bold', fontSize: '13px' }}>{msgAsignatura}</p>}
-                  
                   <form onSubmit={manejarCrearAsignatura} style={{ background: '#f7fafc', padding: '20px', borderRadius: '8px', border: '1px solid #cbd5e0', display: 'grid', gap: '12px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                      <input type="text" placeholder="Nombre Materia (Ej: Estructura de Datos)" required value={nombreAsignatura} onChange={(e) => setNombreAsignatura(e.target.value)} style={inputStyle} />
-                      <input type="text" placeholder="Código (Ej: INF-2204)" required value={codigoAsignatura} onChange={(e) => setCodigoAsignatura(e.target.value)} style={inputStyle} />
-                      <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} style={inputStyle}>
-                        <option value="2026-1">Periodo 2026-1</option>
-                        <option value="2026-2">Periodo 2026-2</option>
-                      </select>
+                      <input type="text" placeholder="Materia" required value={nombreAsignatura} onChange={(e) => setNombreAsignatura(e.target.value)} style={inputStyle} />
+                      <input type="text" placeholder="Código" required value={codigoAsignatura} onChange={(e) => setCodigoAsignatura(e.target.value)} style={inputStyle} />
+                      <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} style={inputStyle}><option value="2026-1">2026-1</option></select>
                     </div>
+                    <select value={docenteSeleccionado} onChange={(e) => setDocenteSeleccionado(e.target.value)} style={inputStyle}>
+                      <option value="">-- Asignar Docente --</option>
+                      {docentesDisponibles.map(d => <option key={d._id} value={d._id}>{d.nombre}</option>)}
+                    </select>
 
-                    {/* Seleccionar Profesor */}
                     <div>
-                      <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a5568' }}>👨‍🏫 Asignar Docente Titular:</label>
-                      <select value={docenteSeleccionado} onChange={(e) => setDocenteSeleccionado(e.target.value)} style={{ ...inputStyle, marginTop: '5px' }}>
-                        <option value="">-- Seleccione un Profesor --</option>
-                        {docentesDisponibles.map(d => <option key={d._id} value={d._id}>{d.nombre} ({d.correo})</option>)}
-                      </select>
-                    </div>
-
-                    {/* Diseñar Evaluaciones Dinámicas */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a5568' }}>📝 Plan de Evaluaciones (Suma debe ser 100%):</label>
-                        <button type="button" onClick={agregarFilaEvaluacion} style={{ backgroundColor: '#38a169', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>+ Añadir Evaluación</button>
-                      </div>
-                      
-                      {evaluaciones.map((ev, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '6px' }}>
-                          <input type="text" placeholder="Ej: Certamen 1" required value={ev.nombreEval} onChange={(e) => actualizarFilaEvaluacion(index, 'nombreEval', e.target.value)} style={inputStyle} />
-                          <input type="number" placeholder="%" min="1" max="100" required value={ev.ponderacion} onChange={(e) => actualizarFilaEvaluacion(index, 'ponderacion', e.target.value)} style={{ ...inputStyle, width: '90px' }} />
-                          {evaluaciones.length > 1 && (
-                            <button type="button" onClick={() => eliminarFilaEvaluacion(index)} style={{ backgroundColor: '#e53e3e', color: 'white', border: 'none', padding: '0 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
-                          )}
+                      <button type="button" onClick={agregarFilaEvaluacion} style={{ float: 'right', fontSize: '12px', background: '#38a169', color: 'white', border: 'none', padding: '3px 6px', borderRadius: '4px' }}>+ Eval</button>
+                      <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Plan Evaluaciones:</label>
+                      {evaluaciones.map((ev, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                          <input type="text" placeholder="Nombre" value={ev.nombreEval} onChange={(e) => actualizarFilaEvaluacion(idx, 'nombreEval', e.target.value)} style={inputStyle} />
+                          <input type="number" placeholder="%" value={ev.ponderacion} onChange={(e) => actualizarFilaEvaluacion(idx, 'ponderacion', e.target.value)} style={{ ...inputStyle, width: '70px' }} />
+                          <button type="button" onClick={() => eliminarFilaEvaluacion(idx)} style={{ background: '#e53e3e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
                         </div>
                       ))}
-                      <div style={{ textAlign: 'right', fontSize: '12px', fontWeight: 'bold', color: evaluaciones.reduce((t, e) => t + Number(e.ponderacion), 0) === 100 ? '#2f855a' : '#c53030' }}>
-                        Suma actual: {evaluaciones.reduce((t, e) => t + Number(e.ponderacion), 0)}%
-                      </div>
                     </div>
-                        
-                    {/* Inscribir Alumnos mediante Checkboxes con FILTRO INTERACTIVO */}
+
+                    {/* SECCIÓN DE SELECCIÓN DE ALUMNOS CON FILTRO POR CARRERA (CORREGIDO) */}
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a5568' }}>🎓 Inscribir Estudiantes:</label>
+                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a5568' }}>🎓 Inscribir Alumnos:</label>
                         
-                        {/* 🔥 NUEVO FILTRO EN TIEMPO REAL */}
-                        <div style={{ fontSize: '12px' }}>
-                          <span style={{ color: '#718096', marginRight: '5px' }}>Filtrar por carrera:</span>
+                        {/* FILTRO INTERACTIVO CON ESTADO REAL DE REACT */}
+                        <div style={{ fontSize: '11px' }}>
+                          <span style={{ color: '#718096', marginRight: '5px' }}>Carrera:</span>
                           <select 
-                            id="filtroCarreraEstudiantes"
-                            style={{ padding: '2px 5px', borderRadius: '4px', border: '1px solid #cbd5e0', fontSize: '12px', backgroundColor: '#fff' }}
-                            onChange={(e) => {
-                              // Guardamos la carrera seleccionada en un atributo temporal del DOM o estado
-                              window.carreraFiltrada = e.target.value;
-                              // Forzamos un re-renderizado rápido de React simulando un cambio cosmético
-                              setNombreAsignatura(prev => prev); 
-                            }}
+                            value={carreraFiltradaAdmin}
+                            style={{ padding: '2px 4px', borderRadius: '4px', border: '1px solid #cbd5e0', fontSize: '11px', backgroundColor: '#fff' }}
+                            onChange={(e) => setCarreraFiltradaAdmin(e.target.value)}
                           >
-                            <option value="TODAS">-- Todas las Carreras --</option>
+                            <option value="TODAS">-- Todas --</option>
                             {carrerasDisponibles.map((c, i) => <option key={i} value={c}>{c}</option>)}
                           </select>
                         </div>
                       </div>
 
-                      <div style={{ background: 'white', border: '1px solid #cbd5e0', borderRadius: '6px', padding: '10px', maxHeight: '120px', overflowY: 'auto' }}>
-                        {estudiantesDisponibles.length === 0 ? (
-                          <p style={{ fontSize: '12px', color: '#718096', margin: 0 }}>No hay estudiantes registrados aún.</p>
-                        ) : (
-                          estudiantesDisponibles
-                            .filter(est => {
-                              // Si el filtro está en "TODAS" o no se ha definido, pasan todos
-                              if (!window.carreraFiltrada || window.carreraFiltrada === 'TODAS') return true;
-                              // Si hay filtro, solo pasan los que coincidan exactamente con la carrera
-                              return est.carrera === window.carreraFiltrada;
-                            })
-                            .map(est => (
-                              <div key={est._id} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px', fontSize: '13px' }}>
-                                <input 
-                                  type="checkbox" 
-                                  id={est._id} 
-                                  checked={estudiantesSeleccionados.includes(est._id)} 
-                                  onChange={() => manejarCheckboxEstudiante(est._id)} 
-                                  style={{ marginRight: '8px' }} 
-                                />
-                                <label htmlFor={est._id}>
-                                  <strong>{est.nombre}</strong> - <span style={{ color: '#4a5568', fontSize: '12px' }}>{est.carrera}</span>
-                                </label>
-                              </div>
-                            ))
-                        )}
-                        {/* Mensaje de ayuda si el filtro deja la lista vacía */}
-                        {window.carreraFiltrada && window.carreraFiltrada !== 'TODAS' && 
-                        estudiantesDisponibles.filter(est => est.carrera === window.carreraFiltrada).length === 0 && (
-                          <p style={{ fontSize: '11px', color: '#e53e3e', margin: '5px 0 0 0', fontStyle: 'italic' }}>
-                            ⚠️ No hay alumnos registrados en esta carrera específica para este semestre.
+                      <div style={{ background: 'white', border: '1px solid #cbd5e0', padding: '8px', maxHeight: '110px', overflowY: 'auto', borderRadius: '6px' }}>
+                        {estudiantesDisponibles
+                          .filter(est => {
+                            // Si el estado es "TODAS", pasan todos los alumnos
+                            if (carreraFiltradaAdmin === 'TODAS') return true;
+                            // Si no, filtramos estrictamente por la carrera seleccionada
+                            return est.carrera === carreraFiltradaAdmin;
+                          })
+                          .map(est => (
+                            <div key={est._id} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', marginBottom: '3px' }}>
+                              <input 
+                                type="checkbox" 
+                                id={`check-${est._id}`}
+                                checked={estudiantesSeleccionados.includes(est._id)} 
+                                onChange={() => manejarCheckboxEstudiante(est._id)} 
+                                style={{ marginRight: '6px' }}
+                              />
+                              <label htmlFor={`check-${est._id}`}>
+                                <strong>{est.nombre}</strong> - <span style={{color: '#718096', fontSize: '11px'}}>{est.carrera}</span>
+                              </label>
+                            </div>
+                          ))
+                        }
+                        
+                        {/* Mensaje de alerta en caso de que la carrera no tenga alumnos inscritos en el sistema */}
+                        {carreraFiltradaAdmin !== 'TODAS' && 
+                         estudiantesDisponibles.filter(est => est.carrera === carreraFiltradaAdmin).length === 0 && (
+                          <p style={{ fontSize: '11px', color: '#e53e3e', margin: 0, fontStyle: 'italic' }}>
+                            ⚠️ No hay alumnos registrados en esta carrera.
                           </p>
                         )}
                       </div>
                     </div>
-
-                    <button type="submit" style={{ ...buttonStyle, backgroundColor: '#d69e2e', marginTop: '5px' }}>Crear Asignatura en Atlas</button>
+                    <button type="submit" style={{ ...buttonStyle, backgroundColor: '#d69e2e' }}>Crear Asignatura</button>
                   </form>
                 </div>
-
-                {/* Lista de Asignaturas Creadas */}
                 <div>
                   <h3>📋 Asignaturas Registradas</h3>
-                  <div style={{ display: 'grid', gap: '10px', maxHeight: '520px', overflowY: 'auto' }}>
-                    {listaAsignaturas.length === 0 ? <p style={{ fontSize: '13px', color: '#718096' }}>No hay asignaturas creadas en el sistema.</p> : 
-                      listaAsignaturas.map(asig => (
-                        <div key={asig._id} style={{ border: '1px solid #cbd5e0', padding: '12px', borderRadius: '8px', backgroundColor: '#f7fafc' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <h4 style={{ margin: 0, color: '#2b6cb0' }}>{asig.nombreAsignatura}</h4>
-                            <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#718096' }}>{asig.codigo}</span>
-                          </div>
-                          <p style={{ margin: '4px 0', fontSize: '12px' }}><strong>Profesor:</strong> {asig.docente?.nombre || 'No asignado'}</p>
-                          <p style={{ margin: '4px 0', fontSize: '12px' }}><strong>Alumnos:</strong> {asig.estudiantesInscritos?.length || 0} inscritos</p>
-                          
-                          <div style={{ marginTop: '8px', background: 'white', padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#4a5568' }}>Evaluaciones fijadas:</span>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '3px' }}>
-                              {asig.evaluaciones?.map((ev, i) => (
-                                <span key={i} style={{ fontSize: '10px', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px' }}>{ev.nombreEval} ({ev.ponderacion}%)</span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    }
-                  </div>
+                  {listaAsignaturas.map(asig => (
+                    <div key={asig._id} style={{ border: '1px solid #cbd5e0', padding: '10px', borderRadius: '6px', marginBottom: '8px', fontSize: '12px' }}>
+                      <strong>{asig.nombreAsignatura}</strong> ({asig.codigo})<br/>
+                      Profesor: {asig.docente?.nombre}
+                    </div>
+                  ))}
                 </div>
-
               </div>
-
             </div>
           )}
 
-          {/* VISTAS OTROS ROLES (Hitos 3 y 4) */}
-          {usuarioLogueado.rol === 'Docente' && <div style={{ marginTop: '20px' }}><h3>👨‍🏫 Panel del Docente</h3><p>Hito 3: Carga de calificaciones para tus materias.</p></div>}
-          {usuarioLogueado.rol === 'Estudiante' && <div style={{ marginTop: '20px' }}><h3>🎓 Panel del Estudiante</h3><p>Hito 4: Visualización predictiva de notas.</p></div>}
+          {/* ========================================================= */}
+          {/* 🔥 NUEVO PANEL DEL DOCENTE (HITO 3)                       */}
+          {/* ========================================================= */}
+          {usuarioLogueado.rol === 'Docente' && (
+            <div>
+              <h3>👨‍🏫 Módulo de Calificaciones Docente</h3>
+              <p style={{ color: '#4a5568', marginTop: '-10px' }}>Seleccione una de sus asignaturas titulares para abrir la planilla de notas del semestre.</p>
+
+              {/* Grid Principal del Profesor */}
+              <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px', marginTop: '20px' }}>
+                
+                {/* Columna Izquierda: Lista de sus ramos */}
+                <div style={{ background: '#f7fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ margin: '0 0 10px 0', borderBottom: '1px solid #cbd5e0', paddingBottom: '5px' }}>Mis Asignaturas</h4>
+                  {asignaturasDocente.length === 0 ? <p style={{ fontSize: '13px', color: '#718096' }}>No tienes ramos asignados este periodo.</p> : 
+                    asignaturasDocente.map(ramo => (
+                      <div 
+                        key={ramo._id} 
+                        onClick={() => setAsignaturaActiva(ramo)}
+                        style={{
+                          padding: '12px', borderRadius: '6px', marginBottom: '8px', cursor: 'pointer', transition: 'all 0.2s',
+                          backgroundColor: asignaturaActiva?._id === ramo._id ? '#ebf8ff' : 'white',
+                          border: asignaturaActiva?._id === ramo._id ? '2px solid #3182ce' : '1px solid #cbd5e0',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <strong style={{ color: '#2b6cb0', fontSize: '14px' }}>{ramo.nombreAsignatura}</strong>
+                        <div style={{ fontSize: '12px', color: '#718096', marginTop: '3px' }}>Código: {ramo.codigo} | 👥 {ramo.estudiantesInscritos?.length || 0} Alumnos</div>
+                      </div>
+                    ))
+                  }
+                </div>
+
+                {/* Columna Derecha: Planilla de Notas Interactiva */}
+                <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  {!asignaturaActiva ? (
+                    <div style={{ textAlign: 'center', padding: '5px', color: '#718096', marginTop: '40px' }}>
+                      <span style={{ fontSize: '40px' }}>📊</span>
+                      <h4>No hay ninguna asignatura seleccionada</h4>
+                      <p style={{ fontSize: '13px' }}>Haz clic en una materia de la lista izquierda para cargar la planilla de calificaciones.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '2px solid #3182ce', paddingBottom: '8px', marginBottom: '15px' }}>
+                        <h3 style={{ margin: 0, color: '#2c5282' }}>Planilla: {asignaturaActiva.nombreAsignatura}</h3>
+                        <span style={{ fontSize: '12px', background: '#e2e8f0', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold' }}>Periodo: {asignaturaActiva.periodo}</span>
+                      </div>
+
+                      {msgNotas && <p style={{ padding: '10px', backgroundColor: '#fff5f5', borderLeft: '4px solid #e53e3e', color: '#c53030', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold' }}>{msgNotas}</p>}
+
+                      {/* Tabla de Notas Completa */}
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#ebf8ff', borderBottom: '2px solid #bee3f8' }}>
+                              <th style={{ padding: '12px', textAlign: 'left', minWidth: '180px' }}>Estudiante / Carrera</th>
+                              {/* Renderizar dinámicamente las columnas de evaluaciones configuradas */}
+                              {asignaturaActiva.evaluaciones?.map((ev, i) => (
+                                <th key={i} style={{ padding: '12px', textAlign: 'center', minWidth: '110px' }}>
+                                  <div style={{ fontWeight: 'bold' }}>{ev.nombreEval}</div>
+                                  <div style={{ fontSize: '11px', color: '#4a5568', fontWeight: 'normal' }}>Pond: {ev.ponderacion}%</div>
+                                </th>
+                              ))}
+                              <th style={{ padding: '12px', textAlign: 'center', backgroundColor: '#edf2f7', fontWeight: 'bold', width: '90px' }}>Promedio<br/>Parcial</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {asignaturaActiva.estudiantesInscritos?.length === 0 ? (
+                              <tr><td colSpan={asignaturaActiva.evaluaciones.length + 2} style={{ padding: '20px', textAlign: 'center', color: '#718096' }}>No hay estudiantes inscritos en este ramo.</td></tr>
+                            ) : (
+                              asignaturaActiva.estudiantesInscritos.map(alumno => (
+                                <tr key={alumno._id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.2s' }}>
+                                  {/* Datos del Alumno */}
+                                  <td style={{ padding: '10px' }}>
+                                    <div style={{ fontWeight: 'bold', color: '#2d3748' }}>{alumno.nombre}</div>
+                                    <div style={{ fontSize: '11px', color: '#718096' }}>{alumno.carrera}</div>
+                                  </td>
+
+                                  {/* Inputs de Notas Dinámicos */}
+                                  {asignaturaActiva.evaluaciones.map((ev, idx) => {
+                                    const registroNota = buscarNotaEnBase(alumno._id, ev.nombreEval);
+                                    return (
+                                      <td key={idx} style={{ padding: '10px', textAlign: 'center' }}>
+                                        <input 
+                                          type="number" 
+                                          step="0.1" 
+                                          min="1.0" 
+                                          max="7.0"
+                                          placeholder="-.-"
+                                          defaultValue={registroNota ? registroNota.calificacion : ''}
+                                          // Al perder el foco (blur), se manda a guardar directo a Atlas
+                                          onBlur={(e) => guardarNotaServidor(alumno._id, ev.nombreEval, e.target.value)}
+                                          style={{
+                                            width: '60px', padding: '6px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e0', fontWeight: 'bold',
+                                            backgroundColor: registroNota ? '#f7fafc' : '#fff'
+                                          }}
+                                        />
+                                        
+                                        {/* 🔥 TRAZABILIDAD / AUDITORÍA EN TIEMPO REAL */}
+                                        {registroNota && (
+                                          <div style={{ fontSize: '9px', color: '#a0aec0', marginTop: '3px', lineHeight: '1.1' }} title={`Modificado por: ${registroNota.modificadoPor?.nombre}`}>
+                                            ⏱️ {new Date(registroNota.updatedAt).toLocaleDateString()}<br/>
+                                            {new Date(registroNota.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                          </div>
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+
+                                  {/* Celda del Promedio Automático Recalculado */}
+                                  <td style={{ padding: '10px', textAlign: 'center', backgroundColor: '#f7fafc', fontWeight: 'bold', fontSize: '14px', color: '#2b6cb0' }}>
+                                    {calcularPromedioPonderado(alumno._id)}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'center', background: '#ebf8ff', padding: '10px', borderRadius: '6px', border: '1px solid #bee3f8' }}>
+                        <span style={{ fontSize: '16px' }}>💡</span>
+                        <span style={{ fontSize: '12px', color: '#2c5282' }}>
+                          <strong>Tips de Uso:</strong> Cambia cualquier nota y haz clic fuera del cuadro (o presiona Tabulador) para guardarla. El promedio se recalcula al instante y la marca temporal de auditoría se actualiza de inmediato.
+                        </span>
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* VISTAS EXCLUSIVAS DEL ESTUDIANTE (HITO 4) */}
+          {usuarioLogueado.rol === 'Estudiante' && <div style={{ marginTop: '20px' }}><h3>🎓 Panel del Estudiante</h3><p>Próximo paso Hito 4: Alertas de reprobación y cálculo predictivo.</p></div>}
         </div>
       )}
     </div>

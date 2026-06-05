@@ -13,7 +13,8 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => console.error('Error al conectar a MongoDB:', err));
 
 app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/subjects', require('./routes/asignaturaRoutes'));
+app.use('/api/asignatura', require('./routes/asignaturaRoutes'));
+app.use('/api/grades', require('./routes/gradeRoutes')); 
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

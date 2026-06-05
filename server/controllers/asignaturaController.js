@@ -1,5 +1,5 @@
 // server/controllers/asignaturaController.js
-const Subject = require('../models/asignatura');
+const asignatura = require('../models/asignatura');
 
 // 1. CREAR UNA ASIGNATURA CON SU PLAN DE EVALUACIONES
 exports.crearAsignatura = async (req, res) => {
@@ -17,7 +17,7 @@ exports.crearAsignatura = async (req, res) => {
         }
 
         // Crear la asignatura en la base de datos
-        const nuevaAsignatura = new Subject({
+        const nuevaAsignatura = new asignatura({
             nombreAsignatura,
             codigo,
             periodo,
@@ -45,12 +45,29 @@ exports.crearAsignatura = async (req, res) => {
 exports.obtenerAsignaturas = async (req, res) => {
     try {
         // Traemos las asignaturas, trayendo también el nombre del docente y de los alumnos (populate)
-        const asignaturas = await Subject.find()
+        const asignaturas = await asignatura.find()
             .populate('docente', 'nombre correo')
             .populate('estudiantesInscritos', 'nombre correo carrera');
         res.json({ success: true, asignaturas });
     } catch (error) {
         console.error(error);
         res.status(500).send('Error al obtener las asignaturas');
+    }
+};
+
+// 3. OBTENER ASIGNATURAS ESPECÍFICAS DE UN DOCENTE
+exports.obtenerAsignaturasDocente = async (req, res) => {
+    try {
+        const { docenteId } = req.params;
+
+        // Buscamos las asignaturas cuyo campo 'docente' sea igual al ID enviado
+        const asignaturas = await asignatura.find({ docente: docenteId })
+            .populate('docente', 'nombre correo')
+            .populate('estudiantesInscritos', 'nombre correo carrera');
+
+        res.json({ success: true, asignaturas });
+    } catch (error) {
+        console.error("Error en obtenerAsignaturasDocente:", error);
+        res.status(500).send('Error al obtener las asignaturas del docente');
     }
 };
