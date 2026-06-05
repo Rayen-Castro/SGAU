@@ -7,7 +7,7 @@ function App() {
   const [usuarioLogueado, setUsuarioLogueado] = useState(null);
   const [error, setError] = useState('');
 
-  // --- ESTADOS DE GESTIÓN DE USUARIOS (HITO 1) ---
+  // --- ESTADOS DE GESTIÓN DE USUARIOS (PARTE 1) ---
   const [listaUsuarios, setListaUsuarios] = useState([]);
   const [msgRegistro, setMsgRegistro] = useState('');
   const [nuevoUsuario, setNuevoUsuario] = useState({
@@ -17,7 +17,7 @@ function App() {
     "Ingeniería Civil Informática", "Ingeniería Civil Ambiental", "Agronomía", "Psicología", "Medicina Veterinaria"
   ];
 
-  // --- ESTADOS DE GESTIÓN DE ASIGNATURAS (HITO 2) ---
+  // --- ESTADOS DE GESTIÓN DE ASIGNATURAS (PARTE 2) ---
   const [nombreAsignatura, setNombreAsignatura] = useState('');
   const [codigoAsignatura, setCodigoAsignatura] = useState('');
   const [periodo, setPeriodo] = useState('2026-1');
@@ -28,11 +28,14 @@ function App() {
   const [listaAsignaturas, setListaAsignaturas] = useState([]);
   const [carreraFiltradaAdmin, setCarreraFiltradaAdmin] = useState('TODAS');
 
-  // --- 🔥 ESTADOS EXCLUSIVOS DEL DOCENTE (HITO 3) ---
+  // --- ESTADOS EXCLUSIVOS DEL DOCENTE (PARTE 3) ---
   const [asignaturasDocente, setAsignaturasDocente] = useState([]);
   const [asignaturaActiva, setAsignaturaActiva] = useState(null);
   const [baseNotas, setBaseNotas] = useState([]); // Matriz global de notas traídas del servidor
   const [msgNotas, setMsgNotas] = useState('');
+
+  // --- ESTADOS ESTUDIANTE (PARTE 4) ---
+  const [asignaturasEstudiante, setAsignaturasEstudiante] = useState([]);
 
   // --- FUNCIONES API ---
   const consultarUsuarios = async () => {
@@ -89,9 +92,19 @@ function App() {
         if (docenteId) {
           consultarAsignaturasDocente(docenteId);
         } else {
-          console.error("❌ No se pudo encontrar el ID del docente en el objeto de sesión");
+          console.error("No se pudo encontrar el ID del docente en el objeto de sesión");
+        }
+
+      } else if (usuarioLogueado.rol === 'Estudiante' || usuarioLogueado.user?.rol === 'Estudiante') {
+        
+        const estudianteId = usuarioLogueado.user?._id || usuarioLogueado._id;
+        if (estudianteId) {
+          consultarAsignaturasEstudiante(estudianteId);
+        } else {
+          console.error("No se pudo encontrar el ID del estudiante en el objeto de sesión");
         }
       }
+
     }
   }, [usuarioLogueado]);
 
@@ -134,11 +147,11 @@ function App() {
       });
       const data = await resp.json();
       if (data.success) {
-        setMsgRegistro(`✅ ${data.msg}`);
+        setMsgRegistro(`${data.msg}`);
         consultarUsuarios();
         setNuevoUsuario({ nombre: '', correo: '', password: '', rol: 'Estudiante', carrera: 'Ingeniería Civil Informática' });
-      } else { setMsgRegistro(`❌ ${data.msg}`); }
-    } catch (err) { setMsgRegistro('❌ Error al registrar usuario.'); }
+      } else { setMsgRegistro(`${data.msg}`); }
+    } catch (err) { setMsgRegistro('Error al registrar usuario.'); }
   };
 
   // --- LÓGICA DE ASIGNATURAS ADMIN ---
@@ -167,7 +180,7 @@ const manejarCrearAsignatura = async (e) => {
     // regla de negocio: la suma de las ponderaciones debe ser exactamente 100%
     const sumaPonderaciones = evaluaciones.reduce((total, ev) => total + (parseInt(ev.ponderacion) || 0), 0);
     if (sumaPonderaciones !== 100) {
-      setMsgAsignatura(`❌ Error: La suma de las ponderaciones es ${sumaPonderaciones}%. Debe ser exactamente 100% para poder registrar la asignatura.`);
+      setMsgAsignatura(`Error: La suma de las ponderaciones es ${sumaPonderaciones}%. Debe ser exactamente 100% para poder registrar la asignatura.`);
       return;
     }
 
@@ -201,9 +214,8 @@ const manejarCrearAsignatura = async (e) => {
     }
   };
 
-  // --- 🔥 LÓGICA DE CALIFICACIONES DOCENTE (HITO 3) ---
+  // --- LÓGICA DE CALIFICACIONES DOCENTE (HITO 3) ---
   
-  // Helper para buscar una nota guardada en nuestra baseNotas local
   const buscarNotaEnBase = (estudianteId, nombreEval) => {
     return baseNotas.find(n => n.estudiante === estudianteId && n.nombreEval === nombreEval);
   };
@@ -216,7 +228,7 @@ const manejarCrearAsignatura = async (e) => {
     // Validación visual de rango
     if (!valorNota) return; 
     if (notaNum < 1.0 || notaNum > 7.0) {
-      setMsgNotas('❌ Error: Las calificaciones deben estar estrictamente entre 1.0 y 7.0');
+      setMsgNotas('Error: Las calificaciones deben estar estrictamente entre 1.0 y 7.0');
       return;
     }
 
@@ -230,18 +242,16 @@ const manejarCrearAsignatura = async (e) => {
           nombreEval,
           calificacion: notaNum,
           profesorId: usuarioLogueado._id || usuarioLogueado.id,
-          modificadoPor: usuarioLogueado.nombre // 👈 Enviamos el nombre real del docente al backend
+          modificadoPor: usuarioLogueado.nombre
         })
       });
       
       const data = await resp.json();
       
       if (data.success) {
-        // Refrescamos la planilla para traer los datos actualizados desde la BD
         consultarNotasAsignatura(asignaturaActiva._id);
         
-        // 🔔 Aquí puedes activar tu mensaje de éxito oficial si quieres
-        setMsgNotas('✅ ¡Nota guardada con éxito!');
+        setMsgNotas('Nota guardada con éxito');
         setTimeout(() => setMsgNotas(''), 3000);
       }
     } catch (err) {
@@ -267,6 +277,22 @@ const manejarCrearAsignatura = async (e) => {
     const promedio = (sumaPuntos / sumaPonderacionesConNota);
     return promedio.toFixed(2);
   };
+
+  // --- LÓGICA ESTUDIANTE (HITO 4) ---
+
+  const consultarAsignaturasEstudiante = async (estudianteId) => {
+  try {
+    const url = `http://localhost:5000/api/asignatura/estudiante/${estudianteId}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    
+    if (data.success) {
+      setAsignaturasEstudiante(data.asignaturas);
+    }
+  } catch (err) {
+    console.error("Error al traer ramos del estudiante:", err);
+  }
+};
 
   const cerrarSesion = () => {
     localStorage.removeItem('token');

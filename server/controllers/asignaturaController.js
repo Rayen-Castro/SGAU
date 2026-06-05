@@ -71,3 +71,18 @@ exports.obtenerAsignaturasDocente = async (req, res) => {
         res.status(500).send('Error al obtener las asignaturas del docente');
     }
 };
+
+// 4. OBTENER ASIGNATURAS DONDE UN ESTUDIANTE ESTÁ INSCRITO
+exports.obtenerAsignaturasEstudiante = async (req, res) => {
+    try {
+        const { estudianteId } = req.params;
+
+        const asignaturas = await asignatura.find({ estudiantesInscritos: estudianteId })
+            .populate('docente', 'nombre correo')
+
+        res.json({ success: true, asignaturas });
+    } catch (error) {
+        console.error("Error en obtenerAsignaturasEstudiante:", error);
+        res.status(500).send('Error al obtener las asignaturas del estudiante');
+    }
+};

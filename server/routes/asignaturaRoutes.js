@@ -11,6 +11,8 @@ router.get('/', asignaturaController.obtenerAsignaturas);
 
 router.get('/docente/:docenteId', asignaturaController.obtenerAsignaturasDocente);
 
+router.get('/estudiante/:estudianteId', asignaturaController.obtenerAsignaturasEstudiante);
+
 // Ruta para obtener asignaturas de un docente específico
 router.get('/docente/:docenteId', async (req, res) => {
     try {
