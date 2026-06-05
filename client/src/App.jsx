@@ -53,12 +53,20 @@ function App() {
 
   // Traer ramos específicos del docente logueado
   const consultarAsignaturasDocente = async (docenteId) => {
-    try {
-      const resp = await fetch(`http://localhost:5000/api/asignatura/docente/${docenteId}`);
-      const data = await resp.json();
-      if (data.success) setAsignaturasDocente(data.asignaturas);
-    } catch (err) { console.error("Error al traer ramos del docente", err); }
-  };
+  console.log("3. Ejecutando fetch para el docente con ID real:", docenteId);
+  try {
+    const url = `http://localhost:5000/api/asignatura/docente/${docenteId}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    console.log("4. Respuesta del backend a las asignaturas:", data);
+    
+    if (data.success) {
+      setAsignaturasDocente(data.asignaturas);
+    }
+  } catch (err) { 
+    console.error("Error al traer ramos del docente", err); 
+  }
+};
 
   // Traer bitácora de notas de la asignatura activa para cruzar datos
   const consultarNotasAsignatura = async (asignaturaId) => {
@@ -71,11 +79,18 @@ function App() {
 
   useEffect(() => {
     if (usuarioLogueado) {
+      
       if (usuarioLogueado.rol === 'Admin') {
         consultarUsuarios();
         consultarAsignaturas();
-      } else if (usuarioLogueado.rol === 'Docente') {
-        consultarAsignaturasDocente(usuarioLogueado.id || usuarioLogueado._id);
+      } else if (usuarioLogueado.rol === 'Docente' || usuarioLogueado.user?.rol === 'Docente') {
+        
+        const docenteId = usuarioLogueado.user?._id || usuarioLogueado._id;
+        if (docenteId) {
+          consultarAsignaturasDocente(docenteId);
+        } else {
+          console.error("❌ No se pudo encontrar el ID del docente en el objeto de sesión");
+        }
       }
     }
   }, [usuarioLogueado]);
@@ -101,6 +116,7 @@ function App() {
       if (data.success) {
         localStorage.setItem('token', data.token);
         setUsuarioLogueado(data.user);
+        console.log("1. Lo que recibe el Login desde el servidor:", respuesta.data);
       } else {
         setError(data.msg || 'Error al iniciar sesión');
       }
@@ -198,7 +214,7 @@ const manejarCrearAsignatura = async (e) => {
     const notaNum = parseFloat(valorNota);
 
     // Validación visual de rango
-    if (!valorNota) return; // Si limpian el input, no hacer nada aún
+    if (!valorNota) return; 
     if (notaNum < 1.0 || notaNum > 7.0) {
       setMsgNotas('❌ Error: Las calificaciones deben estar estrictamente entre 1.0 y 7.0');
       return;
@@ -213,13 +229,20 @@ const manejarCrearAsignatura = async (e) => {
           asignaturaId: asignaturaActiva._id,
           nombreEval,
           calificacion: notaNum,
-          profesorId: usuarioLogueado.id || usuarioLogueado._id
+          profesorId: usuarioLogueado._id || usuarioLogueado.id,
+          modificadoPor: usuarioLogueado.nombre // 👈 Enviamos el nombre real del docente al backend
         })
       });
+      
       const data = await resp.json();
+      
       if (data.success) {
-        // Refrescamos la bitácora para actualizar fechas de modificación en tiempo real
+        // Refrescamos la planilla para traer los datos actualizados desde la BD
         consultarNotasAsignatura(asignaturaActiva._id);
+        
+        // 🔔 Aquí puedes activar tu mensaje de éxito oficial si quieres
+        setMsgNotas('✅ ¡Nota guardada con éxito!');
+        setTimeout(() => setMsgNotas(''), 3000);
       }
     } catch (err) {
       setMsgNotas('❌ Error de red al procesar calificación.');
@@ -260,13 +283,13 @@ const manejarCrearAsignatura = async (e) => {
   return (
     <div style={{ fontFamily: 'Segoe UI, sans-serif', padding: '20px', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
       <header style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <h1 style={{ color: '#004a99', margin: 0 }}>SGAU - Universidad Católica de Temuco</h1>
+        <h1 style={{ color: '#004a99', margin: 0 }}>Sistema de Gestión Académica</h1>
         <p style={{ color: '#555', margin: '5px 0 0 0' }}>Gestión Académica & Rendimiento Predictivo</p>
       </header>
 
       {!usuarioLogueado ? (
         <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 8px 20px rgba(0,0,0,0.1)', maxWidth: '400px', margin: 'auto' }}>
-          <h2 style={{ textAlign: 'center', color: '#333', marginTop: 0 }}>Iniciar Sesión</h2>
+          <h2 style={{ textAlign: 'center', color: '#333', marginTop: 0 }}>Iniciar Sesión</h2> 
           {error && <p style={{ color: 'white', backgroundColor: '#e53e3e', padding: '10px', borderRadius: '5px', fontSize: '14px' }}>{error}</p>}
           <form onSubmit={manejarLogin}>
             <input type="email" placeholder="Correo" required value={correo} onChange={(e) => setCorreo(e.target.value)} style={inputStyle} />
@@ -278,7 +301,7 @@ const manejarCrearAsignatura = async (e) => {
         <div style={{ maxWidth: '1200px', margin: 'auto', background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '20px' }}>
             <div>
-              <h2 style={{ margin: 0 }}>Bienvenido, {usuarioLogueado.nombre}</h2>
+              <h2 style={{ margin: 0 , color: '#2d3748'}}>Bienvenido, {usuarioLogueado.nombre}</h2>
               <span style={{ backgroundColor: '#004a99', color: 'white', padding: '3px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold' }}>Rol: {usuarioLogueado.rol}</span>
             </div>
             <button onClick={cerrarSesion} style={{ color: '#e53e3e', cursor: 'pointer', border: '1px solid #e53e3e', background: 'none', padding: '8px 15px', borderRadius: '5px', fontWeight: 'bold' }}>Cerrar Sesión</button>
@@ -508,9 +531,13 @@ const manejarCrearAsignatura = async (e) => {
 
                                   {/* Inputs de Notas Dinámicos */}
                                   {asignaturaActiva.evaluaciones.map((ev, idx) => {
-                                    const registroNota = buscarNotaEnBase(alumno._id, ev.nombreEval);
-                                    return (
-                                      <td key={idx} style={{ padding: '10px', textAlign: 'center' }}>
+                                  const registroNota = buscarNotaEnBase(alumno._id, ev.nombreEval);
+                                  
+                                  return (
+                                    <td key={idx} style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        
+                                        {/* INPUT DE LA NOTA CORREGIDO */}
                                         <input 
                                           type="number" 
                                           step="0.1" 
@@ -518,24 +545,38 @@ const manejarCrearAsignatura = async (e) => {
                                           max="7.0"
                                           placeholder="-.-"
                                           defaultValue={registroNota ? registroNota.calificacion : ''}
-                                          // Al perder el foco (blur), se manda a guardar directo a Atlas
                                           onBlur={(e) => guardarNotaServidor(alumno._id, ev.nombreEval, e.target.value)}
                                           style={{
-                                            width: '60px', padding: '6px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e0', fontWeight: 'bold',
-                                            backgroundColor: registroNota ? '#f7fafc' : '#fff'
+                                            width: '60px', 
+                                            padding: '6px', 
+                                            textAlign: 'center', 
+                                            borderRadius: '4px', 
+                                            border: '1px solid #cbd5e0', 
+                                            fontWeight: 'bold',
+                                            color: '#2d3748', 
+                                            backgroundColor: registroNota ? '#edf2f7' : '#ffffff' 
                                           }}
                                         />
                                         
-                                        {/* 🔥 TRAZABILIDAD / AUDITORÍA EN TIEMPO REAL */}
+                                        {/* AUDITORÍA CORREGIDA Y ASEGURADA */}
                                         {registroNota && (
-                                          <div style={{ fontSize: '9px', color: '#a0aec0', marginTop: '3px', lineHeight: '1.1' }} title={`Modificado por: ${registroNota.modificadoPor?.nombre}`}>
-                                            ⏱️ {new Date(registroNota.updatedAt).toLocaleDateString()}<br/>
-                                            {new Date(registroNota.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                          </div>
+                                          <small style={{ 
+                                            display: 'block', 
+                                            fontSize: '9px', 
+                                            color: '#4a5568',
+                                            marginTop: '6px',
+                                            lineHeight: '1.2',
+                                            maxWidth: '90px',
+                                            textAlign: 'center'
+                                          }}>
+                                            📝 Por: {registroNota.modificadoPor?.nombre || 'Docente'}
+                                          </small>
                                         )}
-                                      </td>
-                                    );
-                                  })}
+
+                                      </div>
+                                    </td>
+                                  );
+                                })}
 
                                   {/* Celda del Promedio Automático Recalculado */}
                                   <td style={{ padding: '10px', textAlign: 'center', backgroundColor: '#f7fafc', fontWeight: 'bold', fontSize: '14px', color: '#2b6cb0' }}>

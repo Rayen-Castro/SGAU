@@ -74,6 +74,7 @@ exports.login = async (req, res) => {
                     success: true,
                     token,
                     user: {
+                        _id: usuario._id,
                         nombre: usuario.nombre,
                         correo: usuario.correo,
                         rol: usuario.rol

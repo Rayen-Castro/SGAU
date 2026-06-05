@@ -3,7 +3,8 @@ const asignatura = require('../models/asignatura');
 
 // 1. GUARDAR O ACTUALIZAR UNA NOTA
 exports.guardarCalificacion = async (req, res) => {
-    const { estudianteId, asignaturaId, nombreEval, calificacion, profesorId } = req.body;
+    // 1. Extraemos las variables que viajan desde el FETCH del frontend
+    const { estudianteId, asignaturaId, nombreEval, calificacion, profesorId, modificadoPor } = req.body;
 
     try {
         if (calificacion < 1.0 || calificacion > 7.0) {
@@ -18,7 +19,12 @@ exports.guardarCalificacion = async (req, res) => {
 
         if (notaExistente) {
             notaExistente.calificacion = calificacion;
-            notaExistente.modificadoPor = profesorId;
+            // Guardamos el ID para el populate, o el texto si tu modelo almacena Strings
+            notaExistente.modificadoPor = profesorId; 
+            
+            // 🕒 Forzamos la actualización de la fecha manualmente si no usas timestamps
+            notaExistente.fechaModificacion = new Date(); 
+            
             await notaExistente.save();
             return res.json({ success: true, msg: 'Nota actualizada y auditada con éxito.', nota: notaExistente });
         } else {
@@ -27,7 +33,8 @@ exports.guardarCalificacion = async (req, res) => {
                 asignatura: asignaturaId,
                 nombreEval,
                 calificacion,
-                modificadoPor: profesorId
+                modificadoPor: profesorId,
+                fechaModificacion: new Date() // 🕒 Registro de tiempo inicial
             });
             await nuevaNota.save();
             return res.status(201).json({ success: true, msg: 'Nota registrada con éxito.', nota: nuevaNota });
