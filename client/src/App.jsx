@@ -1,5 +1,5 @@
 // src/App.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { useAcademicApp } from "./hooks/useAcademicApp";
 import { Login } from "./components/Login";
 import { AdminPanel } from "./components/AdminPanel";
@@ -8,6 +8,12 @@ import { StudentPanel } from "./components/StudentPanel";
 
 function App() {
   const app = useAcademicApp();
+
+  // Forzar que el cuerpo de la página del navegador siempre sea claro
+  useEffect(() => {
+    document.body.style.backgroundColor = "#f0f2f5";
+    document.body.style.margin = "0";
+  }, []);
 
   // 1. Si el usuario no está logueado, se muestra la pantalla de Login
   if (!app.usuarioLogueado) {
@@ -43,6 +49,7 @@ function App() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          backgroundColor: "#f0f2f5",
           borderBottom: "3px solid #004a99",
           paddingBottom: "15px",
           marginBottom: "20px",
