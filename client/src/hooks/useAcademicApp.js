@@ -60,6 +60,97 @@ export function useAcademicApp() {
   const [asignaturasEstudiante, setAsignaturasEstudiante] = useState([]);
 
   // ==========================================
+  // LÓGICA DE NEGOCIO: PREDICTIVO ESTUDIANTE (HITO 4)
+  // ==========================================
+
+  /**
+   * Obtiene exclusivamente las notas que el estudiante logueado tiene en una asignatura
+   */
+  const obtenerNotasEstudianteAsignatura = (asignaturaId) => {
+    return baseNotas.filter((n) => n.asignatura === asignaturaId);
+  };
+
+  /**
+   * Calcula el estado académico actual y predice el futuro del alumno en una asignatura
+   */
+  const calcularEstadoEstudiante = (asignatura) => {
+    const estudianteId = usuarioLogueado.user?._id || usuarioLogueado._id;
+
+    let sumaPuntosAcumulados = 0;
+    let ponderacionEvaluada = 0;
+    let notasDetalle = [];
+
+    // 1. Recorrer la configuración de evaluaciones del ramo
+    asignatura.evaluaciones.forEach((ev) => {
+      // Buscamos si el alumno tiene nota en esta evaluación
+      const registroNota = buscarNotaEnBase(estudianteId, ev.nombreEval);
+      const tieneNota = registroNota && registroNota.calificacion !== null;
+
+      if (tieneNota) {
+        sumaPuntosAcumulados += registroNota.calificacion * ev.ponderacion;
+        ponderacionEvaluada += ev.ponderacion;
+      }
+
+      notasDetalle.push({
+        nombreEval: ev.nombreEval,
+        ponderacion: ev.ponderacion,
+        nota: tieneNota ? registroNota.calificacion : null,
+      });
+    });
+
+    // 2. Cálculos base
+    const promedioAcumulado =
+      ponderacionEvaluada > 0
+        ? parseFloat((sumaPuntosAcumulados / ponderacionEvaluada).toFixed(2))
+        : 0;
+
+    const notaActualPonderada = sumaPuntosAcumulados / 100; // Lo que ya lleva ganado del 1.0 al 7.0
+    const ponderacionRestante = 100 - ponderacionEvaluada;
+
+    // 3. Algoritmo Predictivo (Para aprobar se necesita llegar a un 4.0 final)
+    const NOTA_APROBACION = 4.0;
+    let notaNecesariaParaAprobar = 0;
+    let riesgoImminente = false;
+    let yaReproboMatematicamente = false;
+
+    if (ponderacionRestante > 0) {
+      // Ecuación: (Nota_Aprobacion - Nota_Actual_Ponderada) / (Ponderacion_Restante / 100)
+      const calculo =
+        (NOTA_APROBACION - notaActualPonderada) / (ponderacionRestante / 100);
+      notaNecesariaParaAprobar = parseFloat(calculo.toFixed(2));
+
+      // Si la nota necesaria es mayor a 7.0, significa que ni sacándose un 7 vale el ramo
+      if (notaNecesariaParaAprobar > 7.0) {
+        yaReproboMatematicamente = true;
+      } else if (notaNecesariaParaAprobar > 5.0) {
+        // Si necesita más de un 5.0 en lo que queda, encendemos la alerta de riesgo
+        riesgoImminente = true;
+      }
+    } else {
+      // Si ya se evaluó el 100%, evaluamos si el promedio final dio azul o rojo
+      if (promedioAcumulado < NOTA_APROBACION) {
+        yaReproboMatematicamente = true;
+      }
+    }
+
+    return {
+      notasDetalle,
+      promedioAcumulado:
+        ponderacionEvaluada > 0 ? promedioAcumulado.toFixed(1) : "-.-",
+      ponderacionEvaluada,
+      ponderacionRestante,
+      notaNecesariaParaAprobar:
+        notaNecesariaParaAprobar > 1.0
+          ? notaNecesariaParaAprobar.toFixed(1)
+          : "1.0",
+      riesgoImminente,
+      yaReproboMatematicamente,
+      aprobado:
+        ponderacionRestante === 0 && promedioAcumulado >= NOTA_APROBACION,
+    };
+  };
+
+  // ==========================================
   // 6. FUNCIONES DE CONSULTA (API FETCH)
   // ==========================================
   const consultarUsuarios = async () => {
@@ -379,6 +470,8 @@ export function useAcademicApp() {
     setAsignaturaActiva,
     msgNotas,
     asignaturasEstudiante,
+    calcularEstadoEstudiante,
+    baseNotas,
     // Selectores filtrados
     docentesDisponibles,
     estudiantesDisponibles,

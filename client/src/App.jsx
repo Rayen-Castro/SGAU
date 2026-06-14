@@ -4,6 +4,7 @@ import { useAcademicApp } from "./hooks/useAcademicApp";
 import { Login } from "./components/Login";
 import { AdminPanel } from "./components/AdminPanel";
 import { TeacherPanel } from "./components/TeacherPanel";
+import { StudentPanel } from "./components/StudentPanel";
 
 function App() {
   const app = useAcademicApp();
@@ -119,16 +120,13 @@ function App() {
         />
       )}
 
-      {/* VISTAS EXCLUSIVAS DEL ESTUDIANTE (HITO 4 - Para futuros desarrollos) */}
+      {/* VISTAS EXCLUSIVAS DEL ESTUDIANTE (HITO 4) */}
       {(app.usuarioLogueado.rol === "Estudiante" ||
         app.usuarioLogueado.user?.rol === "Estudiante") && (
-        <div style={{ marginTop: "20px" }}>
-          <h3>🎓 Panel del Estudiante</h3>
-          <p style={{ color: "#718096" }}>
-            Próximo paso Hito 4: Alertas de reprobación, visualización de notas
-            guardadas y cálculo predictivo.
-          </p>
-        </div>
+        <StudentPanel
+          asignaturasEstudiante={app.asignaturasEstudiante}
+          calcularEstadoEstudiante={app.calcularEstadoEstudiante}
+        />
       )}
     </div>
   );
