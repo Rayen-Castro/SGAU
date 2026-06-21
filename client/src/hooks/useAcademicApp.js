@@ -11,7 +11,7 @@ export function useAcademicApp() {
   const [error, setError] = useState("");
 
   // ==========================================
-  // 2. ESTADOS DE GESTIÓN DE USUARIOS (PARTE 1)
+  // 2. ESTADOS DE GESTIÓN DE USUARIOS (ADMIN)
   // ==========================================
   const [listaUsuarios, setListaUsuarios] = useState([]);
   const [msgRegistro, setMsgRegistro] = useState("");
@@ -31,7 +31,7 @@ export function useAcademicApp() {
   ];
 
   // ==========================================
-  // 3. ESTADOS DE GESTIÓN DE ASIGNATURAS (PARTE 2)
+  // 3. ESTADOS DE GESTIÓN DE ASIGNATURAS (ADMIN)
   // ==========================================
   const [nombreAsignatura, setNombreAsignatura] = useState("");
   const [codigoAsignatura, setCodigoAsignatura] = useState("");
@@ -47,7 +47,7 @@ export function useAcademicApp() {
   const [carreraFiltradaAdmin, setCarreraFiltradaAdmin] = useState("TODAS");
 
   // ==========================================
-  // 4. ESTADOS EXCLUSIVOS DEL DOCENTE (PARTE 3)
+  // 4. ESTADOS EXCLUSIVOS DEL DOCENTE
   // ==========================================
   const [asignaturasDocente, setAsignaturasDocente] = useState([]);
   const [asignaturaActiva, setAsignaturaActiva] = useState(null);
@@ -55,103 +55,53 @@ export function useAcademicApp() {
   const [msgNotas, setMsgNotas] = useState("");
 
   // ==========================================
-  // 5. ESTADOS ESTUDIANTE (PARTE 4)
+  // 5. ESTADOS EXCLUSIVOS DEL ESTUDIANTE
   // ==========================================
   const [asignaturasEstudiante, setAsignaturasEstudiante] = useState([]);
 
   // ==========================================
-  // LÓGICA DE NEGOCIO: PREDICTIVO ESTUDIANTE (HITO 4)
+  // 6. SELECTORES DERIVADOS (FILTROS EN TIEMPO REAL)
+  // ==========================================
+  const docentesDisponibles = listaUsuarios.filter((u) => u.rol === "Docente");
+  const estudiantesDisponibles = listaUsuarios.filter(
+    (u) => u.rol === "Estudiante",
+  );
+
+  // ==========================================
+  // 7. FUNCIONES DE BÚSQUEDA INTERNA (HELPERS)
   // ==========================================
 
   /**
-   * Obtiene exclusivamente las notas que el estudiante logueado tiene en una asignatura
+   * Buscador de notas seguro para la planilla del Docente (Asegura la asignatura activa)
    */
-  const obtenerNotasEstudianteAsignatura = (asignaturaId) => {
-    return baseNotas.filter((n) => n.asignatura === asignaturaId);
+  const buscarNotaEnBase = (estudianteId, nombreEval) => {
+    return baseNotas.find(
+      (n) =>
+        (n.estudiante === estudianteId || n.estudiante?._id === estudianteId) &&
+        (n.asignatura === asignaturaActiva?._id ||
+          n.asignatura?._id === asignaturaActiva?._id) &&
+        n.nombreEval === nombreEval,
+    );
   };
 
   /**
-   * Calcula el estado académico actual y predice el futuro del alumno en una asignatura
+   * Buscador seguro de notas por Alumno y Asignatura para el panel del Estudiante
    */
-  const calcularEstadoEstudiante = (asignatura) => {
-    const estudianteId = usuarioLogueado.user?._id || usuarioLogueado._id;
-
-    let sumaPuntosAcumulados = 0;
-    let ponderacionEvaluada = 0;
-    let notasDetalle = [];
-
-    // 1. Recorrer la configuración de evaluaciones del ramo
-    asignatura.evaluaciones.forEach((ev) => {
-      // Buscamos si el alumno tiene nota en esta evaluación
-      const registroNota = buscarNotaEnBase(estudianteId, ev.nombreEval);
-      const tieneNota = registroNota && registroNota.calificacion !== null;
-
-      if (tieneNota) {
-        sumaPuntosAcumulados += registroNota.calificacion * ev.ponderacion;
-        ponderacionEvaluada += ev.ponderacion;
-      }
-
-      notasDetalle.push({
-        nombreEval: ev.nombreEval,
-        ponderacion: ev.ponderacion,
-        nota: tieneNota ? registroNota.calificacion : null,
-      });
-    });
-
-    // 2. Cálculos base
-    const promedioAcumulado =
-      ponderacionEvaluada > 0
-        ? parseFloat((sumaPuntosAcumulados / ponderacionEvaluada).toFixed(2))
-        : 0;
-
-    const notaActualPonderada = sumaPuntosAcumulados / 100; // Lo que ya lleva ganado del 1.0 al 7.0
-    const ponderacionRestante = 100 - ponderacionEvaluada;
-
-    // 3. Algoritmo Predictivo (Para aprobar se necesita llegar a un 4.0 final)
-    const NOTA_APROBACION = 4.0;
-    let notaNecesariaParaAprobar = 0;
-    let riesgoImminente = false;
-    let yaReproboMatematicamente = false;
-
-    if (ponderacionRestante > 0) {
-      // Ecuación: (Nota_Aprobacion - Nota_Actual_Ponderada) / (Ponderacion_Restante / 100)
-      const calculo =
-        (NOTA_APROBACION - notaActualPonderada) / (ponderacionRestante / 100);
-      notaNecesariaParaAprobar = parseFloat(calculo.toFixed(2));
-
-      // Si la nota necesaria es mayor a 7.0, significa que ni sacándose un 7 vale el ramo
-      if (notaNecesariaParaAprobar > 7.0) {
-        yaReproboMatematicamente = true;
-      } else if (notaNecesariaParaAprobar > 5.0) {
-        // Si necesita más de un 5.0 en lo que queda, encendemos la alerta de riesgo
-        riesgoImminente = true;
-      }
-    } else {
-      // Si ya se evaluó el 100%, evaluamos si el promedio final dio azul o rojo
-      if (promedioAcumulado < NOTA_APROBACION) {
-        yaReproboMatematicamente = true;
-      }
-    }
-
-    return {
-      notasDetalle,
-      promedioAcumulado:
-        ponderacionEvaluada > 0 ? promedioAcumulado.toFixed(1) : "-.-",
-      ponderacionEvaluada,
-      ponderacionRestante,
-      notaNecesariaParaAprobar:
-        notaNecesariaParaAprobar > 1.0
-          ? notaNecesariaParaAprobar.toFixed(1)
-          : "1.0",
-      riesgoImminente,
-      yaReproboMatematicamente,
-      aprobado:
-        ponderacionRestante === 0 && promedioAcumulado >= NOTA_APROBACION,
-    };
+  const buscarNotaEstudianteAsignatura = (
+    estudianteId,
+    asignaturaId,
+    nombreEval,
+  ) => {
+    return baseNotas.find(
+      (n) =>
+        (n.estudiante === estudianteId || n.estudiante?._id === estudianteId) &&
+        (n.asignatura === asignaturaId || n.asignatura?._id === asignaturaId) &&
+        n.nombreEval === nombreEval,
+    );
   };
 
   // ==========================================
-  // 6. FUNCIONES DE CONSULTA (API FETCH)
+  // 8. PETICIONES AL SERVIDOR (API FETCH)
   // ==========================================
   const consultarUsuarios = async () => {
     try {
@@ -201,14 +151,43 @@ export function useAcademicApp() {
       const url = `http://localhost:5000/api/asignatura/estudiante/${estudianteId}`;
       const resp = await fetch(url);
       const data = await resp.json();
-      if (data.success) setAsignaturasEstudiante(data.asignaturas);
+
+      if (data.success) {
+        setAsignaturasEstudiante(data.asignaturas);
+        // Descargar el historial de notas de cada asignatura inscrita
+        for (const asig of data.dashboards || data.asignaturas) {
+          await consultarNotasParaEstudiante(asig._id);
+        }
+      }
     } catch (err) {
       console.error("Error al traer ramos del estudiante:", err);
     }
   };
 
+  const consultarNotasParaEstudiante = async (asignaturaId) => {
+    try {
+      const resp = await fetch(
+        `http://localhost:5000/api/grades/asignatura/${asignaturaId}`,
+      );
+      const data = await resp.json();
+      if (data.success) {
+        setBaseNotas((prev) => {
+          // Evitamos duplicados limpiando las notas antiguas de esta asignatura específica
+          const filtradas = prev.filter(
+            (n) =>
+              n.asignatura !== asignaturaId &&
+              n.asignatura?._id !== asignaturaId,
+          );
+          return [...filtradas, ...data.notas];
+        });
+      }
+    } catch (err) {
+      console.error("Error al traer notas de asignatura para estudiante", err);
+    }
+  };
+
   // ==========================================
-  // 7. EFECTOS REACCIÓN DE SESIÓN
+  // 9. LIFECYCLE EFFECTS (EFECTOS DE REACCIÓN)
   // ==========================================
   useEffect(() => {
     if (usuarioLogueado) {
@@ -238,7 +217,7 @@ export function useAcademicApp() {
   }, [asignaturaActiva]);
 
   // ==========================================
-  // 8. LÓGICA DE EVENTOS (MANEJADORES)
+  // 10. MANEJADORES DE EVENTOS DE LA INTERFAZ
   // ==========================================
   const manejarLogin = async (e) => {
     e.preventDefault();
@@ -289,9 +268,9 @@ export function useAcademicApp() {
     }
   };
 
-  // --- MÉTODOS CONFIG EVALUACIONES ADMIN ---
   const agregarFilaEvaluacion = () =>
     setEvaluaciones([...evaluaciones, { nombreEval: "", ponderacion: 0 }]);
+
   const eliminarFilaEvaluacion = (index) =>
     setEvaluaciones(evaluaciones.filter((_, i) => i !== index));
 
@@ -361,13 +340,6 @@ export function useAcademicApp() {
     }
   };
 
-  // --- LÓGICA DE CALIFICACIONES DOCENTE ---
-  const buscarNotaEnBase = (estudianteId, nombreEval) => {
-    return baseNotas.find(
-      (n) => n.estudiante === estudianteId && n.nombreEval === nombreEval,
-    );
-  };
-
   const guardarNotaServidor = async (estudianteId, nombreEval, valorNota) => {
     setMsgNotas("");
     const notaNum = parseFloat(valorNota);
@@ -429,12 +401,91 @@ export function useAcademicApp() {
     setAsignaturaActiva(null);
   };
 
-  // SELECTORES DERIVADOS
-  const docentesDisponibles = listaUsuarios.filter((u) => u.rol === "Docente");
-  const estudiantesDisponibles = listaUsuarios.filter(
-    (u) => u.rol === "Estudiante",
-  );
+  // ==========================================
+  // 11. ALGORITMO PREDICTIVO ACADÉMICO (ESTUDIANTE)
+  // ==========================================
+  const calcularEstadoEstudiante = (asignatura) => {
+    const estudianteId = usuarioLogueado?.user?._id || usuarioLogueado?._id;
 
+    let sumaPuntosAcumulados = 0;
+    let ponderacionEvaluada = 0;
+    let notasDetalle = [];
+
+    // Recorrer la configuración de evaluaciones fijadas por el Administrador
+    asignatura.evaluaciones?.forEach((ev) => {
+      const registroNota = buscarNotaEstudianteAsignatura(
+        estudianteId,
+        asignatura._id,
+        ev.nombreEval,
+      );
+      const tieneNota =
+        registroNota &&
+        registroNota.calificacion !== undefined &&
+        registroNota.calificacion !== null;
+
+      if (tieneNota) {
+        sumaPuntosAcumulados += registroNota.calificacion * ev.ponderacion;
+        ponderacionEvaluada += ev.ponderacion;
+      }
+
+      notasDetalle.push({
+        nombreEval: ev.nombreEval,
+        ponderacion: ev.ponderacion,
+        nota: tieneNota ? registroNota.calificacion : null,
+        modificadoPor:
+          registroNota?.modificadoPor?.nombre ||
+          registroNota?.modificadoPor ||
+          null,
+      });
+    });
+
+    // Cálculos estadísticos básicos
+    const promedioAcumulado =
+      ponderacionEvaluada > 0
+        ? parseFloat((sumaPuntosAcumulados / ponderacionEvaluada).toFixed(2))
+        : 0;
+    const ponderacionRestante = 100 - ponderacionEvaluada;
+
+    // Ecuación Predictiva Chilena (Aprobación con 4.0)
+    const NOTA_MINIMA_APROBAR = 4.0;
+    let notaNecesaria = 0;
+    let riesgoInminente = false;
+    let reprobadoMatematicamente = false;
+
+    if (ponderacionRestante > 0) {
+      // Fórmula matemática: (400 - Puntos_Acumulados) / Ponderacion_Restante
+      const calculo = (400 - sumaPuntosAcumulados) / ponderacionRestante;
+      notaNecesaria = parseFloat(calculo.toFixed(2));
+
+      if (notaNecesaria > 7.0) {
+        reprobadoMatematicamente = true; // Ni con un 7.0 en todo lo restante alcanza
+      } else if (notaNecesaria > 4.5) {
+        riesgoInminente = true; // Requiere alta exigencia para salvar la materia
+      }
+    } else {
+      if (promedioAcumulado < NOTA_MINIMA_APROBAR) {
+        reprobadoMatematicamente = true;
+      }
+    }
+
+    return {
+      notasDetalle,
+      promedioAcumulado:
+        ponderacionEvaluada > 0 ? promedioAcumulado.toFixed(1) : "-.-",
+      ponderacionRestante,
+      notaNecesariaParaAprobar:
+        notaNecesaria > 1.0 ? notaNecesaria.toFixed(1) : "1.0",
+      riesgoInminente,
+      reprobadoMatematicamente,
+      periodoTerminado: ponderacionRestante === 0,
+      aprobado:
+        ponderacionRestante === 0 && promedioAcumulado >= NOTA_MINIMA_APROBAR,
+    };
+  };
+
+  // ==========================================
+  // 12. RETORNO DE CONTEXTO DE LA APLICACIÓN
+  // ==========================================
   return {
     // Estados login
     correo,
