@@ -8,9 +8,10 @@ export function StudentPanel({
   return (
     <div>
       <h3>🎓 Mi Progreso Académico Semestral</h3>
-      <p style={{ color: "#4a5568", marginTop: "-10px" }}>
-        A continuación, se presenta el desglose analítico de tus calificaciones
-        y las proyecciones para el cierre del periodo.
+      <p style={{ color: "#4a5568", marginTop: "-10px", fontSize: "14px" }}>
+        A continuación, se presenta el desglose analítico de tus calificaciones,
+        auditoría de registros y las proyecciones predictivas para el cierre del
+        periodo.
       </p>
 
       {asignaturasEstudiante.length === 0 ? (
@@ -29,42 +30,58 @@ export function StudentPanel({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
             gap: "20px",
             marginTop: "20px",
           }}
         >
           {asignaturasEstudiante.map((asignatura) => {
-            // Pasamos la asignatura por el algoritmo predictivo del hook
+            // Ejecución del algoritmo predictivo del Hook
             const estado = calcularEstadoEstudiante(asignatura);
 
-            // Definición dinámica de colores de alerta según el riesgo
+            // Cálculo seguro para el color del promedio acumulado
+            const promedioNumerico = parseFloat(estado.promedioAcumulado);
+            const esPendiente = isNaN(promedioNumerico);
+            const colorPromedio = esPendiente
+              ? "#718096" // Gris si no hay notas
+              : promedioNumerico < 4.0
+                ? "#e53e3e" // Rojo si va reprobando
+                : "#38a169"; // Verde si va aprobando
+
+            // Porcentaje del ramo que ya ha sido evaluado
+            const porcentajeEvaluado = 100 - estado.ponderacionRestante;
+
+            // =========================================================
+            // MANEJO DINÁMICO DE ALERTAS PREDICTIVAS (Sincronizado con Hook)
+            // =========================================================
             let cardBorder = "1px solid #cbd5e0";
             let alertBg = "#ebf8ff";
             let alertColor = "#2b6cb0";
-            let alertText = `🎯 Necesitas un ${estado.notaNecesariaParaAprobar} en el ${estado.ponderacionRestante}% restante para aprobar.`;
+            let alertText = `🎯 Necesitas promediar un ${estado.notaNecesariaParaAprobar} en el ${estado.ponderacionRestante}% restante para aprobar.`;
 
-            if (estado.yaReproboMatematicamente) {
+            if (estado.reprobadoMatematicamente) {
               cardBorder = "2px solid #e53e3e";
               alertBg = "#fff5f5";
               alertColor = "#c53030";
               alertText =
-                "🚨 Riesgo Crítico: Matemáticamente no es posible alcanzar la nota de aprobación (4.0).";
-            } else if (estado.riesgoImminente) {
+                "🚨 Riesgo Crítico: Matemáticamente ya no es posible alcanzar la nota de aprobación (4.0).";
+            } else if (estado.riesgoInminente) {
               cardBorder = "2px solid #dd6b20";
               alertBg = "#fffaf0";
               alertColor = "#dd6b20";
-              alertText = `⚠️ Alerta de Riesgo: Requieres un esfuerzo alto. Nota mínima restante: ${estado.notaNecesariaParaAprobar}`;
+              alertText = `⚠️ Alerta de Riesgo: Requieres un rendimiento alto. Nota mínima necesaria restante: ${estado.notaNecesariaParaAprobar}`;
             } else if (estado.aprobado) {
               cardBorder = "2px solid #38a169";
               alertBg = "#f0fff4";
               alertColor = "#22543d";
-              alertText = "🎉 ¡Asignatura aprobada exitosamente!";
-            } else if (estado.ponderacionRestante === 0 && !estado.aprobado) {
+              alertText =
+                "🎉 ¡Asignatura aprobada exitosamente al cierre del periodo!";
+            } else if (estado.periodoTerminado && !estado.aprobado) {
               cardBorder = "2px solid #e53e3e";
               alertBg = "#fff5f5";
               alertColor = "#c53030";
-              alertText = "❌ Asignatura reprobada al cierre del periodo.";
+              alertText =
+                "❌ Asignatura reprobada al cierre definitivo del periodo.";
             }
 
             return (
@@ -74,14 +91,14 @@ export function StudentPanel({
                   background: "white",
                   borderRadius: "10px",
                   border: cardBorder,
-                  boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
+                  boxShadow: "0 4px 6px rgba(0,0,0,0.03)",
                   padding: "18px",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
                 }}
               >
-                {/* Cabecera de la Tarjeta */}
+                {/* Cabecera del Ramo */}
                 <div>
                   <div
                     style={{
@@ -101,7 +118,8 @@ export function StudentPanel({
                         {asignatura.nombreAsignatura}
                       </h4>
                       <span style={{ fontSize: "11px", color: "#a0aec0" }}>
-                        Código: {asignatura.codigo}
+                        Código: {asignatura.codigo} | Período:{" "}
+                        {asignatura.periodo || "2026-1"}
                       </span>
                     </div>
                     <div style={{ textAlign: "right" }}>
@@ -110,16 +128,47 @@ export function StudentPanel({
                       </span>
                       <div
                         style={{
-                          fontSize: "20px",
+                          fontSize: "22px",
                           fontWeight: "bold",
-                          color:
-                            parseFloat(estado.promedioAcumulado) < 4.0
-                              ? "#e53e3e"
-                              : "#38a169",
+                          color: colorPromedio,
                         }}
                       >
                         {estado.promedioAcumulado}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Barra de Progreso de Evaluaciones del Semestre */}
+                  <div style={{ marginTop: "10px", marginBottom: "5px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "10px",
+                        color: "#718096",
+                      }}
+                    >
+                      <span>Avance Evaluativo</span>
+                      <span>{porcentajeEvaluado}% Completado</span>
+                    </div>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "6px",
+                        background: "#edf2f7",
+                        borderRadius: "3px",
+                        overflow: "hidden",
+                        marginTop: "3px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${porcentajeEvaluado}%`,
+                          height: "100%",
+                          background: "#4299e1",
+                          transition: "width 0.5s ease",
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -131,7 +180,7 @@ export function StudentPanel({
                     }}
                   />
 
-                  {/* Desglose de Notas */}
+                  {/* Desglose de Calificaciones + Auditoría */}
                   <div style={{ marginBottom: "15px" }}>
                     <span
                       style={{
@@ -140,8 +189,9 @@ export function StudentPanel({
                         color: "#4a5568",
                       }}
                     >
-                      📋 Calificaciones obtenidas:
+                      📋 Registro Oficial de Calificaciones:
                     </span>
+
                     <div
                       style={{ marginTop: "6px", display: "grid", gap: "6px" }}
                     >
@@ -150,51 +200,80 @@ export function StudentPanel({
                           key={idx}
                           style={{
                             display: "flex",
-                            justifyContent: "space-between",
-                            fontSize: "12px",
+                            flexDirection: "column",
                             background: "#f7fafc",
-                            padding: "6px 10px",
-                            borderRadius: "4px",
+                            padding: "8px 10px",
+                            borderRadius: "6px",
+                            border: "1px solid #edf2f7",
                           }}
                         >
-                          <span style={{ color: "#4a5568" }}>
-                            {notaObj.nombreEval}{" "}
-                            <span
-                              style={{ fontSize: "10px", color: "#a0aec0" }}
-                            >
-                              ({notaObj.ponderacion}%)
-                            </span>
-                          </span>
-                          <strong
+                          <div
                             style={{
-                              color: notaObj.nota
-                                ? notaObj.nota < 4.0
-                                  ? "#e53e3e"
-                                  : "#2b6cb0"
-                                : "#a0aec0",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "12px",
                             }}
                           >
-                            {notaObj.nota !== null
-                              ? notaObj.nota.toFixed(1)
-                              : "Pendiente"}
-                          </strong>
+                            <span
+                              style={{ color: "#4a5568", fontWeight: "500" }}
+                            >
+                              {notaObj.nombreEval}{" "}
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  color: "#a0aec0",
+                                  fontWeight: "normal",
+                                }}
+                              >
+                                ({notaObj.ponderacion}%)
+                              </span>
+                            </span>
+                            <strong
+                              style={{
+                                color:
+                                  notaObj.nota !== null
+                                    ? notaObj.nota < 4.0
+                                      ? "#e53e3e"
+                                      : "#2b6cb0"
+                                    : "#a0aec0",
+                              }}
+                            >
+                              {notaObj.nota !== null
+                                ? notaObj.nota.toFixed(1)
+                                : "Pendiente"}
+                            </strong>
+                          </div>
+
+                          {/* Muestra de Auditoría si la nota ya fue ingresada por un Profesor */}
+                          {notaObj.nota !== null && notaObj.modificadoPor && (
+                            <span
+                              style={{
+                                fontSize: "9px",
+                                color: "#718096",
+                                marginTop: "2px",
+                                fontStyle: "italic",
+                              }}
+                            >
+                              ✍️ Firmado por: {notaObj.modificadoPor}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Contenedor del Indicador Predictivo / Alerta Visual */}
+                {/* Contenedor del Algoritmo Predictivo */}
                 <div
                   style={{
                     background: alertBg,
                     color: alertColor,
-                    padding: "10px",
-                    borderRadius: "6px",
+                    padding: "12px",
+                    borderRadius: "8px",
                     fontSize: "12px",
-                    fontWeight: "5px",
-                    border: `1px solid ${alertColor}33`,
-                    lineHeight: "1.4",
+                    fontWeight: "500",
+                    border: `1px solid ${alertColor}25`,
+                    lineHeight: "1.45",
                   }}
                 >
                   {alertText}
