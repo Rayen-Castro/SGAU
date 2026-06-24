@@ -51,7 +51,8 @@ En Terminal:
 1. cd server
 2. node index.js
 3. (abre una segunda terminal)
-4. npm run dev
+4. cd client
+5. npm run dev
 
 entra a > http://localhost:5173/
 (el local host es solo temporal hasta que la pagina web sea estable)
