@@ -1,0 +1,36 @@
+Anexo de Casos de Uso (Corrección UML):
+El caso de uso "Ver promedio" e "Ver rendimiento" tienen una relación de inclusión (<<include>>) hacia "Calcular promedio" y "Consultar notas". 
+El caso de uso "Ver rendimiento" tiene una relación de inclusión (<<include>>) hacia "Calcular nota necesaria".
+El caso de uso "Subir notas" tiene una relación de extensión (<<extend>>) hacia "Modo offline", la cual se gatilla únicamente bajo la condición [Sin conexión a internet]. 
+
+Cambios en requisitos funcionales:
+FR-9: "El sistema debe permitir que el estudiante consulte su información académica actualizada *al momento de la consulta*."
+
+Cambios en requisitos no funcionales:
+NFR-1: La interfaz debe ser responsiva y cómoda, accesible desde navegadores web modernos.
+NFR-2: El sistema debe manejar un control de acceso traducido en roles como requerimiento para el login.
+NFR-3: Los cálculos de promedio y nota requerida deben procesarse y mostrarse en la interfaz en un tiempo máximo de 3 segundos tras la solicitud del usuario.
+NFR-5 (REEMPLAZO): El sistema debe soportar una carga base demostrable de al menos 50 usuarios simulados concurrentes sin pérdida de datos ni caídas del servicio.
+NFR-6: El sistema debe garantizar su disponibilidad operativa en el entorno de desarrollo local (localhost) o en la plataforma de despliegue elegida para las instancias de evaluación académica.
+
+Reestructura de reglas de negocio:
+BR-1: Toda ponderación asignada a una evaluación debe ser un valor porcentual entero mayor a 0% y menor o igual a 100%.
+BR-2: La suma total de las ponderaciones de las evaluaciones configuradas para una asignatura debe ser exactamente igual al 100% para poder consolidar el promedio final del estudiante.
+BR-3: El ingreso o modificación de calificaciones está estrictamente restringido a usuarios con el rol de Docente asignado formalmente a dicha asignatura, o al rol de Administrador.
+BR-6: Un usuario con rol de Estudiante solo podrá visualizar las calificaciones asociadas a su propio identificador de usuario, bloqueando el acceso a registros de terceros.
+BR-7: Toda modificación sobre una calificación ya registrada generará un registro de auditoría automático, almacenando de forma inmutable: ID del usuario que modificó, fecha y hora.
+BR-4: Las calificaciones del sistema se registrarán con un decimal, en un rango cerrado de 1.0 a 7.0. El promedio se calculará de forma ponderada redondeando a un decimal
+BR-5: El cálculo de la nota necesaria para aprobar (UC-03) proyectará la calificación mínima requerida en las evaluaciones restantes para alcanzar un promedio final acumulado de 4.0. Si matemáticamente el estudiante ya no puede alcanzar el 4.0 (incluso obteniendo un 7.0 en lo restante), el sistema informará la condición de "Aprobación imposible".
+BR-8: Al completarse el 100% de las evaluaciones de la asignatura, el sistema asignará automáticamente el estado final de "Aprobado" si el promedio es igual o superior a 4.0, o "Reprobado" si es inferior a 4.0.
+(AGREGAR) BR-10 (Creación de Usuarios y Formato de Credenciales): La creación de cuentas de usuario está restringida exclusivamente al rol de Administrador. El proceso de asignación de credenciales será automatizado por el sistema bajo las siguientes directrices basadas en los datos de registro (Nombre y Apellido):
+
+Correo Institucional: Se estructurará combinando el primer apellido, seguido del primer nombre, bajo el dominio oficial de la institución (ej. laramartin@uct.cl).
+
+Contraseña Provisional de Seguridad: El sistema generará una clave por defecto con el siguiente patrón estricto: 4 dígitos numéricos aleatorios no consecutivos, seguidos de un carácter especial (ej. ., *, /), y finalizando con 4 letras aleatorias no consecutivas (ej. 4735*hfbd).
+
+
+(AGREGAR) BR-12 (Filtro por Carrera/Semestre e Inscripción por Excepción): Al crear o configurar una asignatura, esta debe vincularse obligatoriamente a una Carrera y a un Semestre específico de su malla curricular.
+
+Comportamiento por defecto: Al asociar estudiantes a la asignatura, el sistema filtrará automáticamente y mostrará solo a los alumnos regulares que pertenezcan a esa misma carrera y semestre.
+
+Cláusula de Excepción: El sistema permitirá habilitar un flujo de "Inscripción por Excepción Académica", levantando el filtro del semestre para permitir la adición manual de estudiantes de la misma carrera que estén adelantando la asignatura (semestres anteriores) o cursándola como rezagados (semestres posteriores).
