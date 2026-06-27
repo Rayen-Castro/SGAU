@@ -44,12 +44,10 @@ exports.crearAsignatura = async (req, res) => {
   } catch (error) {
     console.error(error);
     if (error.code === 11000) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          msg: "El nombre o código de la asignatura ya existe.",
-        });
+      return res.status(400).json({
+        success: false,
+        msg: "El nombre o código de la asignatura ya existe.",
+      });
     }
     res.status(500).send("Error al crear la asignatura");
   }
@@ -75,7 +73,6 @@ exports.obtenerAsignaturasDocente = async (req, res) => {
   try {
     const { docenteId } = req.params;
 
-    // Buscamos las asignaturas cuyo campo 'docente' sea igual al ID enviado
     const asignaturas = await asignatura
       .find({ docente: docenteId })
       .populate("docente", "nombre correo")
@@ -95,7 +92,8 @@ exports.obtenerAsignaturasEstudiante = async (req, res) => {
 
     const asignaturas = await asignatura
       .find({ estudiantesInscritos: estudianteId })
-      .populate("docente", "nombre correo");
+      .populate("docente", "nombre correo")
+      .lean();
 
     res.json({ success: true, asignaturas });
   } catch (error) {

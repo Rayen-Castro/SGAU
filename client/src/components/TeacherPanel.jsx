@@ -214,7 +214,7 @@ export function TeacherPanel({
                     </tr>
                   </thead>
                   <tbody>
-                    {asignaturaActiva.estudiantes?.map((alumno) => (
+                    {asignaturaActiva?.estudiantesInscritos?.map((alumno) => (
                       <tr
                         key={alumno._id}
                         style={{ borderBottom: "1px solid #e2e8f0" }}
@@ -230,7 +230,7 @@ export function TeacherPanel({
                         </td>
 
                         {/* Render dinámico de celdas para evaluaciones */}
-                        {asignaturaActiva.evaluaciones?.map((ev, idx) => {
+                        {asignaturaActiva?.evaluaciones?.map((ev, idx) => {
                           const registroNota = buscarNotaEnBase(
                             alumno._id,
                             ev.nombreEval,
@@ -273,7 +273,9 @@ export function TeacherPanel({
                                     marginTop: "3px",
                                   }}
                                 >
-                                  Mod: {registroNota.modificadoPor}
+                                  Mod:{" "}
+                                  {registroNota.modificadoPor?.nombre ||
+                                    registroNota.modificadoPor}
                                 </div>
                               )}
                             </td>
