@@ -32,6 +32,15 @@ export function AdminPanel({
   manejarCrearAsignatura,
   docentesDisponibles,
   listaAsignaturas,
+  tieneAyudantia,
+  ayudanteSeleccionado,
+  tieneExamenIntegral,
+  porcentajeExamenIntegral,
+  facultadesYCarreras,
+  facultadRamo,
+  setFacultadRamo,
+  carreraRamo,
+  setCarreraRamo,
 }) {
   // Estilos locales encapsulados
   const inputStyle = {
@@ -279,6 +288,44 @@ export function AdminPanel({
               gap: "12px",
             }}
           >
+            {/* Selector Facultad → Carrera */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+              }}
+            >
+              <select
+                value={facultadRamo}
+                onChange={(e) => {
+                  setFacultadRamo(e.target.value);
+                  setCarreraRamo(""); // resetear carrera al cambiar facultad
+                }}
+                style={inputStyle}
+              >
+                <option value="">-- Seleccionar Facultad --</option>
+                {Object.keys(facultadesYCarreras).map((fac) => (
+                  <option key={fac} value={fac}>
+                    {fac}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={carreraRamo}
+                onChange={(e) => setCarreraRamo(e.target.value)}
+                style={inputStyle}
+                disabled={!facultadRamo}
+              >
+                <option value="">-- Seleccionar Carrera --</option>
+                {(facultadesYCarreras[facultadRamo] || []).map((car) => (
+                  <option key={car} value={car}>
+                    {car}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div
               style={{
                 display: "grid",
@@ -323,6 +370,79 @@ export function AdminPanel({
                 </option>
               ))}
             </select>
+
+            {/* Ayudantía */}
+            <label
+              style={{
+                fontSize: "13px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={tieneAyudantia}
+                onChange={(e) => setTieneAyudantia(e.target.checked)}
+              />
+              ¿El ramo tiene ayudantía?
+            </label>
+
+            {tieneAyudantia && (
+              <select
+                value={ayudanteSeleccionado}
+                onChange={(e) => setAyudanteSeleccionado(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="">-- Seleccionar Ayudante --</option>
+                {estudiantesDisponibles.map((e) => (
+                  <option key={e._id} value={e._id}>
+                    {e.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Examen Integral */}
+            <label
+              style={{
+                fontSize: "13px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={tieneExamenIntegral}
+                onChange={(e) => setTieneExamenIntegral(e.target.checked)}
+              />
+              ¿El ramo tiene examen integral?
+            </label>
+
+            {tieneExamenIntegral && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "13px",
+                }}
+              >
+                <span>Porcentaje base:</span>
+                <input
+                  type="number"
+                  value={porcentajeExamenIntegral}
+                  onChange={(e) =>
+                    setPorcentajeExamenIntegral(Number(e.target.value))
+                  }
+                  style={{ ...inputStyle, width: "70px" }}
+                  min={1}
+                  max={100}
+                />
+                <span>%</span>
+              </div>
+            )}
 
             {/* Plan de Evaluaciones Dinámico */}
             <div>
@@ -507,22 +627,142 @@ export function AdminPanel({
         {/* Lista de Asignaturas Creadas */}
         <div>
           <h3>📋 Asignaturas Registradas</h3>
-          {listaAsignaturas.map((asig) => (
-            <div
-              key={asig._id}
-              style={{
-                border: "1px solid #cbd5e0",
-                padding: "10px",
-                borderRadius: "6px",
-                marginBottom: "8px",
-                fontSize: "12px",
-              }}
-            >
-              <strong>{asig.nombreAsignatura}</strong> ({asig.codigo})
-              <br />
-              Profesor: {asig.docente?.nombre || "No asignado"}
-            </div>
-          ))}
+          <div
+            style={{
+              maxHeight: "520px",
+              overflowY: "auto",
+              display: "grid",
+              gap: "10px",
+            }}
+          >
+            {listaAsignaturas.map((asig) => (
+              <div
+                key={asig._id}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  padding: "12px 14px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  background: "white",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                }}
+              >
+                {/* Nombre y código */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "6px",
+                  }}
+                >
+                  <strong style={{ fontSize: "13px", color: "#2d3748" }}>
+                    {asig.nombreAsignatura}
+                  </strong>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      background: "#edf2f7",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      color: "#718096",
+                    }}
+                  >
+                    {asig.codigo}
+                  </span>
+                </div>
+
+                {/* Docente */}
+                <div style={{ color: "#4a5568", marginBottom: "4px" }}>
+                  👨‍🏫 <strong>Docente:</strong>{" "}
+                  {asig.docente?.nombre || "No asignado"}
+                </div>
+
+                {/* Facultad y carrera */}
+                {(asig.facultad || asig.carrera) && (
+                  <div style={{ color: "#4a5568", marginBottom: "4px" }}>
+                    🏫 {asig.facultad && <span>{asig.facultad}</span>}
+                    {asig.facultad && asig.carrera && <span> · </span>}
+                    {asig.carrera && (
+                      <span style={{ color: "#718096" }}>{asig.carrera}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Alumnos */}
+                <div style={{ color: "#4a5568", marginBottom: "4px" }}>
+                  👥 <strong>Alumnos:</strong>{" "}
+                  {asig.estudiantesInscritos?.length || 0} inscritos
+                </div>
+
+                {/* Periodo */}
+                <div style={{ color: "#4a5568", marginBottom: "6px" }}>
+                  📅 <strong>Período:</strong> {asig.periodo}
+                </div>
+
+                {/* Badges: Ayudantía y Examen Integral */}
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  {asig.tieneAyudantia ? (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        padding: "2px 8px",
+                        borderRadius: "20px",
+                        background: "#ebf8ff",
+                        color: "#2b6cb0",
+                        border: "1px solid #bee3f8",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      🤝 Con Ayudantía
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        padding: "2px 8px",
+                        borderRadius: "20px",
+                        background: "#f7fafc",
+                        color: "#a0aec0",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      Sin Ayudantía
+                    </span>
+                  )}
+
+                  {asig.tieneExamenIntegral ? (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        padding: "2px 8px",
+                        borderRadius: "20px",
+                        background: "#fffaf0",
+                        color: "#c05621",
+                        border: "1px solid #fbd38d",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      📝 Examen Integral ({asig.porcentajeExamenIntegral}%)
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        padding: "2px 8px",
+                        borderRadius: "20px",
+                        background: "#f7fafc",
+                        color: "#a0aec0",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      Sin Examen Integral
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

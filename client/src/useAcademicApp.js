@@ -1,18 +1,13 @@
-// src/hooks/useAcademicApp.js
 import { useState, useEffect } from "react";
 
 export function useAcademicApp() {
-  // ==========================================
-  // 1. ESTADOS DE SESIÓN Y LOGIN
-  // ==========================================
+  // sesión y login (parte 1)
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [usuarioLogueado, setUsuarioLogueado] = useState(null);
   const [error, setError] = useState("");
 
-  // ==========================================
-  // 2. ESTADOS DE GESTIÓN DE USUARIOS (ADMIN)
-  // ==========================================
+  // gestión usuarios de admin (parte 2)
   const [listaUsuarios, setListaUsuarios] = useState([]);
   const [msgRegistro, setMsgRegistro] = useState("");
   const [nuevoUsuario, setNuevoUsuario] = useState({
@@ -22,24 +17,15 @@ export function useAcademicApp() {
     rol: "Estudiante",
     carrera: "Ingeniería Civil Informática",
   });
-  // Nuevo con carreras y facultades
-  const facultadesYCarreras = {
-    "Facultad de Ingeniería": [
-      "Ingeniería Civil Informática",
-      "Ingeniería Civil Ambiental",
-    ],
-    "Facultad de Ciencias Agropecuarias": ["Agronomía", "Medicina Veterinaria"],
-    "Facultad de Ciencias Sociales": ["Psicología"],
-  };
+  const carrerasDisponibles = [
+    "Ingeniería Civil Informática",
+    "Ingeniería Civil Ambiental",
+    "Agronomía",
+    "Psicología",
+    "Medicina Veterinaria",
+  ];
 
-  const carrerasDisponibles = Object.values(facultadesYCarreras).flat();
-
-  // Estados nuevos para el formulario de crear ramo
-  const [facultadRamo, setFacultadRamo] = useState("");
-  const [carreraRamo, setCarreraRamo] = useState("");
-  // ==========================================
-  // 3. ESTADOS DE GESTIÓN DE ASIGNATURAS (ADMIN)
-  // ==========================================
+  // gestión asignaturas para admin (parte 2)
   const [nombreAsignatura, setNombreAsignatura] = useState("");
   const [codigoAsignatura, setCodigoAsignatura] = useState("");
   const [periodo, setPeriodo] = useState("2026-1");
@@ -53,68 +39,15 @@ export function useAcademicApp() {
   const [listaAsignaturas, setListaAsignaturas] = useState([]);
   const [carreraFiltradaAdmin, setCarreraFiltradaAdmin] = useState("TODAS");
 
-  const [tieneAyudantia, setTieneAyudantia] = useState(false);
-  const [ayudanteSeleccionado, setAyudanteSeleccionado] = useState("");
-  const [tieneExamenIntegral, setTieneExamenIntegral] = useState(false);
-  const [porcentajeExamenIntegral, setPorcentajeExamenIntegral] = useState(35);
-
-  // ==========================================
-  // 4. ESTADOS EXCLUSIVOS DEL DOCENTE
-  // ==========================================
+  // estados para docente (parte 3)
   const [asignaturasDocente, setAsignaturasDocente] = useState([]);
   const [asignaturaActiva, setAsignaturaActiva] = useState(null);
   const [baseNotas, setBaseNotas] = useState([]);
   const [msgNotas, setMsgNotas] = useState("");
 
-  // ==========================================
-  // 5. ESTADOS EXCLUSIVOS DEL ESTUDIANTE
-  // ==========================================
+  // estados para estudiante (parte 4)
   const [asignaturasEstudiante, setAsignaturasEstudiante] = useState([]);
 
-  // ==========================================
-  // 6. SELECTORES DERIVADOS (FILTROS EN TIEMPO REAL)
-  // ==========================================
-  const docentesDisponibles = listaUsuarios.filter((u) => u.rol === "Docente");
-  const estudiantesDisponibles = listaUsuarios.filter(
-    (u) => u.rol === "Estudiante",
-  );
-
-  // ==========================================
-  // 7. FUNCIONES DE BÚSQUEDA INTERNA (HELPERS)
-  // ==========================================
-
-  /**
-   * Buscador de notas seguro para la planilla del Docente (Asegura la asignatura activa)
-   */
-  const buscarNotaEnBase = (estudianteId, nombreEval) => {
-    return baseNotas.find(
-      (n) =>
-        (n.estudiante === estudianteId || n.estudiante?._id === estudianteId) &&
-        (n.asignatura === asignaturaActiva?._id ||
-          n.asignatura?._id === asignaturaActiva?._id) &&
-        n.nombreEval === nombreEval,
-    );
-  };
-
-  /**
-   * Buscador seguro de notas por Alumno y Asignatura para el panel del Estudiante
-   */
-  const buscarNotaEstudianteAsignatura = (
-    estudianteId,
-    asignaturaId,
-    nombreEval,
-  ) => {
-    return baseNotas.find(
-      (n) =>
-        (n.estudiante === estudianteId || n.estudiante?._id === estudianteId) &&
-        (n.asignatura === asignaturaId || n.asignatura?._id === asignaturaId) &&
-        n.nombreEval === nombreEval,
-    );
-  };
-
-  // ==========================================
-  // 8. PETICIONES AL SERVIDOR (API FETCH)
-  // ==========================================
   const consultarUsuarios = async () => {
     try {
       const resp = await fetch("http://localhost:5000/api/auth/usuarios");
@@ -163,44 +96,12 @@ export function useAcademicApp() {
       const url = `http://localhost:5000/api/asignatura/estudiante/${estudianteId}`;
       const resp = await fetch(url);
       const data = await resp.json();
-
-      if (data.success) {
-        setAsignaturasEstudiante(data.asignaturas);
-        // Descargar el historial de notas de cada asignatura inscrita
-        for (const asig of data.dashboards || data.asignaturas) {
-          await consultarNotasParaEstudiante(asig._id);
-        }
-      }
+      if (data.success) setAsignaturasEstudiante(data.asignaturas);
     } catch (err) {
       console.error("Error al traer ramos del estudiante:", err);
     }
   };
 
-  const consultarNotasParaEstudiante = async (asignaturaId) => {
-    try {
-      const resp = await fetch(
-        `http://localhost:5000/api/grades/asignatura/${asignaturaId}`,
-      );
-      const data = await resp.json();
-      if (data.success) {
-        setBaseNotas((prev) => {
-          // Evitamos duplicados limpiando las notas antiguas de esta asignatura específica
-          const filtradas = prev.filter(
-            (n) =>
-              n.asignatura !== asignaturaId &&
-              n.asignatura?._id !== asignaturaId,
-          );
-          return [...filtradas, ...data.notas];
-        });
-      }
-    } catch (err) {
-      console.error("Error al traer notas de asignatura para estudiante", err);
-    }
-  };
-
-  // ==========================================
-  // 9. LIFECYCLE EFFECTS (EFECTOS DE REACCIÓN)
-  // ==========================================
   useEffect(() => {
     if (usuarioLogueado) {
       if (usuarioLogueado.rol === "Admin") {
@@ -228,9 +129,6 @@ export function useAcademicApp() {
     }
   }, [asignaturaActiva]);
 
-  // ==========================================
-  // 10. MANEJADORES DE EVENTOS DE LA INTERFAZ
-  // ==========================================
   const manejarLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -282,7 +180,6 @@ export function useAcademicApp() {
 
   const agregarFilaEvaluacion = () =>
     setEvaluaciones([...evaluaciones, { nombreEval: "", ponderacion: 0 }]);
-
   const eliminarFilaEvaluacion = (index) =>
     setEvaluaciones(evaluaciones.filter((_, i) => i !== index));
 
@@ -307,7 +204,7 @@ export function useAcademicApp() {
     setMsgAsignatura("");
 
     if (!docenteSeleccionado || estudiantesSeleccionados.length === 0) {
-      setMsgAsignatura("❌ Falta asignar docente o estudiantes.");
+      setMsgAsignatura("Falta asignar docente o estudiantes.");
       return;
     }
 
@@ -333,27 +230,29 @@ export function useAcademicApp() {
           docenteId: docenteSeleccionado,
           estudiantesIds: estudiantesSeleccionados,
           evaluaciones,
-          tieneAyudantia, // nuevo
-          ayudanteId: ayudanteSeleccionado, // nuevo
-          tieneExamenIntegral, // nuevo
-          porcentajeExamenIntegral, // nuevo
         }),
       });
       const data = await resp.json();
       if (data.success) {
-        setMsgAsignatura(`✅ ${data.msg}`);
+        setMsgAsignatura(`${data.msg}`);
         consultarAsignaturas();
         setNombreAsignatura("");
         setCodigoAsignatura("");
         setEstudiantesSeleccionados([]);
       } else {
-        setMsgAsignatura(`❌ ${data.msg || "Error al crear asignatura"}`);
+        setMsgAsignatura(`${data.msg || "Error al crear asignatura"}`);
       }
     } catch (err) {
       setMsgAsignatura(
-        "❌ Error de red: Asegúrate de que las evaluaciones tengan nombre y que el backend esté corriendo.",
+        "Error: Asegúrate de que las evaluaciones tengan nombre y que el backend esté corriendo.",
       );
     }
+  };
+
+  const buscarNotaEnBase = (estudianteId, nombreEval) => {
+    return baseNotas.find(
+      (n) => n.estudiante === estudianteId && n.nombreEval === nombreEval,
+    );
   };
 
   const guardarNotaServidor = async (estudianteId, nombreEval, valorNota) => {
@@ -388,7 +287,7 @@ export function useAcademicApp() {
         setTimeout(() => setMsgNotas(""), 3000);
       }
     } catch (err) {
-      setMsgNotas("❌ Error de red al procesar calificación.");
+      setMsgNotas("Error al procesar calificación.");
     }
   };
 
@@ -417,91 +316,11 @@ export function useAcademicApp() {
     setAsignaturaActiva(null);
   };
 
-  // ==========================================
-  // 11. ALGORITMO PREDICTIVO ACADÉMICO (ESTUDIANTE)
-  // ==========================================
-  const calcularEstadoEstudiante = (asignatura) => {
-    const estudianteId = usuarioLogueado?.user?._id || usuarioLogueado?._id;
+  const docentesDisponibles = listaUsuarios.filter((u) => u.rol === "Docente");
+  const estudiantesDisponibles = listaUsuarios.filter(
+    (u) => u.rol === "Estudiante",
+  );
 
-    let sumaPuntosAcumulados = 0;
-    let ponderacionEvaluada = 0;
-    let notasDetalle = [];
-
-    // Recorrer la configuración de evaluaciones fijadas por el Administrador
-    asignatura.evaluaciones?.forEach((ev) => {
-      const registroNota = buscarNotaEstudianteAsignatura(
-        estudianteId,
-        asignatura._id,
-        ev.nombreEval,
-      );
-      const tieneNota =
-        registroNota &&
-        registroNota.calificacion !== undefined &&
-        registroNota.calificacion !== null;
-
-      if (tieneNota) {
-        sumaPuntosAcumulados += registroNota.calificacion * ev.ponderacion;
-        ponderacionEvaluada += ev.ponderacion;
-      }
-
-      notasDetalle.push({
-        nombreEval: ev.nombreEval,
-        ponderacion: ev.ponderacion,
-        nota: tieneNota ? registroNota.calificacion : null,
-        modificadoPor:
-          registroNota?.modificadoPor?.nombre ||
-          registroNota?.modificadoPor ||
-          null,
-      });
-    });
-
-    // Cálculos estadísticos básicos
-    const promedioAcumulado =
-      ponderacionEvaluada > 0
-        ? parseFloat((sumaPuntosAcumulados / ponderacionEvaluada).toFixed(2))
-        : 0;
-    const ponderacionRestante = 100 - ponderacionEvaluada;
-
-    // Ecuación Predictiva Chilena (Aprobación con 4.0)
-    const NOTA_MINIMA_APROBAR = 4.0;
-    let notaNecesaria = 0;
-    let riesgoInminente = false;
-    let reprobadoMatematicamente = false;
-
-    if (ponderacionRestante > 0) {
-      // Fórmula matemática: (400 - Puntos_Acumulados) / Ponderacion_Restante
-      const calculo = (400 - sumaPuntosAcumulados) / ponderacionRestante;
-      notaNecesaria = parseFloat(calculo.toFixed(2));
-
-      if (notaNecesaria > 7.0) {
-        reprobadoMatematicamente = true; // Ni con un 7.0 en todo lo restante alcanza
-      } else if (notaNecesaria > 4.5) {
-        riesgoInminente = true; // Requiere alta exigencia para salvar la materia
-      }
-    } else {
-      if (promedioAcumulado < NOTA_MINIMA_APROBAR) {
-        reprobadoMatematicamente = true;
-      }
-    }
-
-    return {
-      notasDetalle,
-      promedioAcumulado:
-        ponderacionEvaluada > 0 ? promedioAcumulado.toFixed(1) : "-.-",
-      ponderacionRestante,
-      notaNecesariaParaAprobar:
-        notaNecesaria > 1.0 ? notaNecesaria.toFixed(1) : "1.0",
-      riesgoInminente,
-      reprobadoMatematicamente,
-      periodoTerminado: ponderacionRestante === 0,
-      aprobado:
-        ponderacionRestante === 0 && promedioAcumulado >= NOTA_MINIMA_APROBAR,
-    };
-  };
-
-  // ==========================================
-  // 12. RETORNO DE CONTEXTO DE LA APLICACIÓN
-  // ==========================================
   return {
     // Estados login
     correo,
@@ -531,23 +350,12 @@ export function useAcademicApp() {
     listaAsignaturas,
     carreraFiltradaAdmin,
     setCarreraFiltradaAdmin,
-    tieneAyudantia,
-    ayudanteSeleccionado,
-    tieneExamenIntegral,
-    porcentajeExamenIntegral,
-    facultadesYCarreras,
-    facultadRamo,
-    setFacultadRamo,
-    carreraRamo,
-    setCarreraRamo,
     // Estados docente / alumno
     asignaturasDocente,
     asignaturaActiva,
     setAsignaturaActiva,
     msgNotas,
     asignaturasEstudiante,
-    calcularEstadoEstudiante,
-    baseNotas,
     // Selectores filtrados
     docentesDisponibles,
     estudiantesDisponibles,
