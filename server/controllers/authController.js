@@ -24,21 +24,63 @@ exports.login = async (req, res) => {
   const { correo, password } = req.body;
 
   try {
-    // El servicio nos devuelve directamente el token y el usuario limpio
-    const { token, user } = await authService.login(correo, password);
+    // 1. El servicio ahora nos devuelve DOS tokens (Access y Refresh)
+    const { accessToken, refreshToken, user } = await authService.login(
+      correo,
+      password,
+    );
 
+    // 2. Guardamos el Refresh Token en una Cookie HttpOnly (Seguridad máxima)
+    // El frontend NO puede leer esto con JavaScript, previniendo robos de sesión.
+    res.cookie("jwt_refresh", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días de validez
+    });
+
+    // 3. Devolvemos el Access Token de corta duración para uso inmediato
     res.json({
       success: true,
-      token,
+      accessToken,
       user,
     });
   } catch (error) {
     console.error(error);
-    // Manejo de errores controlados por nuestro servicio
     if (error.message.includes("Credenciales inválidas")) {
       return res.status(400).json({ msg: error.message });
     }
     res.status(500).send("Error en el servidor durante el login");
+  }
+};
+
+// NUEVA FUNCIÓN: Para renovar la sesión silenciosamente (Refresh Token)
+exports.refreshToken = async (req, res) => {
+  // Leemos la cookie que guardamos en el login
+  const refreshToken = req.cookies?.jwt_refresh;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      success: false,
+      msg: "Sesión expirada. Inicie sesión nuevamente.",
+    });
+  }
+
+  try {
+    // Delegamos la verificación y creación del nuevo token al servicio
+    const { newAccessToken } = await authService.renovarToken(refreshToken);
+
+    res.json({
+      success: true,
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    console.error("Error al renovar token:", error);
+    // Si el refresh token es inválido, limpiamos la cookie
+    res.clearCookie("jwt_refresh");
+    return res
+      .status(403)
+      .json({ success: false, msg: "Refresh token inválido." });
   }
 };
 
