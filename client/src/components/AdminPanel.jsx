@@ -98,55 +98,100 @@ export function AdminPanel({
             onSubmit={manejarRegistroUsuario}
             style={{
               display: "grid",
-              gap: "8px",
+              gap: "12px",
               background: "#f7fafc",
               padding: "15px",
               borderRadius: "8px",
               border: "1px solid #e2e8f0",
             }}
           >
-            <input
-              type="text"
-              placeholder="Nombre completo"
-              required
-              value={nuevoUsuario.nombre}
-              onChange={(e) =>
-                setNuevoUsuario({ ...nuevoUsuario, nombre: e.target.value })
-              }
-              style={inputStyle}
-            />
-            <input
-              type="text"
-              placeholder="Correo electrónico"
-              required
-              value={nuevoUsuario.correo}
-              onChange={(e) =>
-                setNuevoUsuario({ ...nuevoUsuario, correo: e.target.value })
-              }
-              style={inputStyle}
-            />
-            <p
+            {/* SECCIÓN DE NOMBRES */}
+            <div
               style={{
-                fontSize: "11px",
-                color: "#718096",
-                margin: "-5px 0 5px 0",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "8px",
               }}
             >
-              💡 Dominio automático:{" "}
-              <strong>
-                {nuevoUsuario.rol === "Estudiante" ? "@alu.uct.cl" : "@uct.cl"}
-              </strong>
-            </p>
-            <input
-              type="password"
-              placeholder="Contraseña inicial"
-              required
-              value={nuevoUsuario.password}
-              onChange={(e) =>
-                setNuevoUsuario({ ...nuevoUsuario, password: e.target.value })
-              }
-              style={inputStyle}
-            />
+              <input
+                type="text"
+                placeholder="Primer Nombre"
+                required
+                value={nuevoUsuario.primerNombre || ""}
+                onChange={(e) =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    primerNombre: e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="Segundo Nombre"
+                required
+                value={nuevoUsuario.segundoNombre || ""}
+                onChange={(e) =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    segundoNombre: e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="Tercer Nombre (Opc.)"
+                value={nuevoUsuario.tercerNombre || ""}
+                onChange={(e) =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    tercerNombre: e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+            </div>
+
+            {/* SECCIÓN DE APELLIDOS */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "8px",
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Primer Apellido"
+                required
+                value={nuevoUsuario.primerApellido || ""}
+                onChange={(e) =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    primerApellido: e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="Segundo Apellido"
+                required
+                value={nuevoUsuario.segundoApellido || ""}
+                onChange={(e) =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    segundoApellido: e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+            </div>
+
+            <hr style={{ borderTop: "1px dashed #cbd5e0", margin: "5px 0" }} />
+
+            {/* SECCIÓN DE ROLES Y CARRERA */}
             <select
               value={nuevoUsuario.rol}
               onChange={(e) =>
@@ -154,13 +199,16 @@ export function AdminPanel({
                   ...nuevoUsuario,
                   rol: e.target.value,
                   carrera:
-                    e.target.value === "Docente" ? "" : carrerasDisponibles[0],
+                    e.target.value === "Estudiante"
+                      ? carrerasDisponibles[0]
+                      : "",
                 })
               }
               style={inputStyle}
             >
               <option value="Estudiante">Estudiante</option>
               <option value="Docente">Docente</option>
+              <option value="Admin">Administrador</option>
             </select>
 
             {nuevoUsuario.rol === "Estudiante" && (
@@ -178,9 +226,14 @@ export function AdminPanel({
                 ))}
               </select>
             )}
+
             <button
               type="submit"
-              style={{ ...buttonStyle, backgroundColor: "#2b6cb0" }}
+              style={{
+                ...buttonStyle,
+                backgroundColor: "#2b6cb0",
+                marginTop: "5px",
+              }}
             >
               Guardar Usuario
             </button>

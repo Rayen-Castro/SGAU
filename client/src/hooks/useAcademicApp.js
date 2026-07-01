@@ -255,28 +255,105 @@ export function useAcademicApp() {
   const manejarRegistroUsuario = async (e) => {
     e.preventDefault();
     setMsgRegistro("");
+
     try {
+      // 1. GENERACIÓN DE CORREO INSTITUCIONAL (BR-10)
+      // Usamos estrictamente el primer nombre y el primer apellido
+      const nombreLimpio = nuevoUsuario.primerNombre.toLowerCase().trim();
+      const apellidoLimpio = nuevoUsuario.primerApellido.toLowerCase().trim();
+      const dominio =
+        nuevoUsuario.rol === "Estudiante" ? "alu.uct.cl" : "uct.cl";
+      const correoGenerado = `${apellidoLimpio}${nombreLimpio}@${dominio}`;
+
+      // 2. GENERADOR DE CONTRASEÑA ESTRICTA (BR-10)
+      const nums = "0123456789";
+      const letras = "abcdefghijklmnopqrstuvwxyz";
+      const especiales = "*."; // Solo asterisco o punto, sin espacios
+
+      const getRand = (str) => str[Math.floor(Math.random() * str.length)];
+
+      // Validador de no-consecutivos y no-repetidos
+      const esValido = (prev, curr, charset) => {
+        if (prev === curr) return false; // Evita repeticiones (ej. 88, mm)
+        const prevIdx = charset.indexOf(prev);
+        const currIdx = charset.indexOf(curr);
+        if (Math.abs(prevIdx - currIdx) === 1) return false; // Evita secuencias (ej. 12, ab)
+        return true;
+      };
+
+      let passwordGenerada = "";
+      let lastChar = "";
+
+      // 4 números no consecutivos
+      for (let i = 0; i < 4; i++) {
+        let c = getRand(nums);
+        while (i > 0 && !esValido(lastChar, c, nums)) {
+          c = getRand(nums);
+        }
+        passwordGenerada += c;
+        lastChar = c;
+      }
+
+      // 1 carácter especial
+      passwordGenerada += getRand(especiales);
+
+      // 4 letras no consecutivas
+      lastChar = "";
+      for (let i = 0; i < 4; i++) {
+        let c = getRand(letras);
+        while (i > 0 && !esValido(lastChar, c, letras)) {
+          c = getRand(letras);
+        }
+        passwordGenerada += c;
+        lastChar = c;
+      }
+
+      // 3. CONCATENAR EL NOMBRE COMPLETO PARA LA BASE DE DATOS
+      const nombreUnificado =
+        `${nuevoUsuario.primerNombre} ${nuevoUsuario.segundoNombre} ${nuevoUsuario.tercerNombre} ${nuevoUsuario.primerApellido} ${nuevoUsuario.segundoApellido}`
+          .replace(/\s+/g, " ") // Elimina dobles espacios si el tercer nombre está vacío
+          .trim();
+
+      // 4. EMPAQUETAR LOS DATOS
+      const usuarioFinal = {
+        ...nuevoUsuario,
+        nombre: nombreUnificado, // Enviamos el nombre fusionado a MongoDB
+        correo: correoGenerado,
+        password: passwordGenerada,
+      };
+
+      // 5. ENVIAR AL SERVIDOR
       const resp = await fetch("http://localhost:5000/api/auth/registrar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nuevoUsuario),
+        body: JSON.stringify(usuarioFinal),
       });
+
       const data = await resp.json();
+
       if (data.success) {
-        setMsgRegistro(`${data.msg}`);
-        consultarUsuarios();
+        setMsgRegistro(
+          `✅ ${data.msg} | Correo: ${correoGenerado} | Clave: ${passwordGenerada}`,
+        );
+        consultarUsuarios(); // Refresca la lista si tienes esta función
+
+        // Limpiar el estado con los 5 campos nuevos
         setNuevoUsuario({
-          nombre: "",
-          correo: "",
-          password: "",
+          primerNombre: "",
+          segundoNombre: "",
+          tercerNombre: "",
+          primerApellido: "",
+          segundoApellido: "",
           rol: "Estudiante",
           carrera: "Ingeniería Civil Informática",
         });
       } else {
-        setMsgRegistro(`${data.msg}`);
+        setMsgRegistro(`❌ ${data.msg}`);
       }
     } catch (err) {
-      setMsgRegistro("Error al registrar usuario.");
+      setMsgRegistro(
+        "❌ Error al registrar usuario. Revisa la conexión al servidor.",
+      );
     }
   };
 
