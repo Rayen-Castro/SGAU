@@ -1,66 +1,43 @@
 // server/controllers/asignaturaController.js
-const asignatura = require("../models/asignatura");
+const asignaturaService = require("../services/asignaturaService");
 
 // 1. CREAR UNA ASIGNATURA CON SU PLAN DE EVALUACIONES
 exports.crearAsignatura = async (req, res) => {
-  const {
-    nombreAsignatura,
-    codigo,
-    periodo,
-    docenteId,
-    estudiantesIds,
-    evaluaciones,
-  } = req.body;
-
   try {
-    // Validación crítica: Las ponderaciones deben sumar exactamente 100%
-    const sumaPonderaciones = evaluaciones.reduce(
-      (total, eval) => total + Number(eval.ponderacion),
-      0,
-    );
+    // El controlador solo delega la tarea al servicio pasándole el body
+    const nuevaAsignatura = await asignaturaService.crearAsignatura(req.body);
 
-    if (sumaPonderaciones !== 100) {
-      return res.status(400).json({
-        success: false,
-        msg: `La suma de las ponderaciones es ${sumaPonderaciones}%. Debe ser exactamente 100%.`,
-      });
-    }
-
-    // Crear la asignatura en la base de datos
-    const nuevaAsignatura = new asignatura({
-      nombreAsignatura,
-      codigo,
-      periodo,
-      docente: docenteId,
-      estudiantesInscritos: estudiantesIds,
-      evaluaciones,
-    });
-
-    await nuevaAsignatura.save();
     res.status(201).json({
       success: true,
-      msg: `Asignatura [${nombreAsignatura}] creada con éxito con ${evaluaciones.length} evaluaciones.`,
+      msg: `Asignatura [${nuevaAsignatura.nombreAsignatura}] creada con éxito con ${nuevaAsignatura.evaluaciones.length} evaluaciones.`,
     });
   } catch (error) {
     console.error(error);
+
+    // Capturamos el error de llave duplicada de MongoDB
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
         msg: "El nombre o código de la asignatura ya existe.",
       });
     }
+
+    // Capturamos el error de validación del 100% que lanzamos desde el servicio
+    if (error.message.includes("ponderaciones")) {
+      return res.status(400).json({
+        success: false,
+        msg: error.message,
+      });
+    }
+
     res.status(500).send("Error al crear la asignatura");
   }
 };
 
-// 2. OBTENER ASIGNATURAS (Para verlas en el sistema)
+// 2. OBTENER ASIGNATURAS
 exports.obtenerAsignaturas = async (req, res) => {
   try {
-    // Traemos las asignaturas, trayendo también el nombre del docente y de los alumnos (populate)
-    const asignaturas = await asignatura
-      .find()
-      .populate("docente", "nombre correo")
-      .populate("estudiantesInscritos", "nombre correo carrera");
+    const asignaturas = await asignaturaService.obtenerTodas();
     res.json({ success: true, asignaturas });
   } catch (error) {
     console.error(error);
@@ -72,12 +49,7 @@ exports.obtenerAsignaturas = async (req, res) => {
 exports.obtenerAsignaturasDocente = async (req, res) => {
   try {
     const { docenteId } = req.params;
-
-    const asignaturas = await asignatura
-      .find({ docente: docenteId })
-      .populate("docente", "nombre correo")
-      .populate("estudiantesInscritos", "nombre correo carrera");
-
+    const asignaturas = await asignaturaService.obtenerPorDocente(docenteId);
     res.json({ success: true, asignaturas });
   } catch (error) {
     console.error("Error en obtenerAsignaturasDocente:", error);
@@ -89,12 +61,8 @@ exports.obtenerAsignaturasDocente = async (req, res) => {
 exports.obtenerAsignaturasEstudiante = async (req, res) => {
   try {
     const { estudianteId } = req.params;
-
-    const asignaturas = await asignatura
-      .find({ estudiantesInscritos: estudianteId })
-      .populate("docente", "nombre correo")
-      .lean();
-
+    const asignaturas =
+      await asignaturaService.obtenerPorEstudiante(estudianteId);
     res.json({ success: true, asignaturas });
   } catch (error) {
     console.error("Error en obtenerAsignaturasEstudiante:", error);

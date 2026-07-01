@@ -1,8 +1,8 @@
+// server/controllers/authController.js
+
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-// server/controllers/authController.js
 
 exports.registrarUsuario = async (req, res) => {
   let { nombre, correo, password, rol, carrera } = req.body;
@@ -25,11 +25,9 @@ exports.registrarUsuario = async (req, res) => {
     }
     let usuarioExiste = await User.findOne({ correo });
     if (usuarioExiste) {
-      return res
-        .status(400)
-        .json({
-          msg: `El correo institucional ${correo} ya está registrado en el sistema.`,
-        });
+      return res.status(400).json({
+        msg: `El correo institucional ${correo} ya está registrado en el sistema.`,
+      });
     }
 
     const nuevoUsuario = new User({ nombre, correo, password, rol, carrera });
