@@ -1,68 +1,36 @@
-const Grade = require("../models/Grade");
-const asignatura = require("../models/asignatura");
+// server/controllers/gradeController.js
+const gradeService = require("../services/gradeService");
 
 // 1. GUARDAR O ACTUALIZAR UNA NOTA
 exports.guardarCalificacion = async (req, res) => {
-  // 1. Extraemos las variables que viajan desde el FETCH del frontend
-  const {
-    estudianteId,
-    asignaturaId,
-    nombreEval,
-    calificacion,
-    profesorId,
-    modificadoPor,
-  } = req.body;
-
   try {
-    if (calificacion < 1.0 || calificacion > 7.0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          msg: "La calificación debe estar entre 1.0 y 7.0",
-        });
-    }
+    const resultado = await gradeService.guardarCalificacion(req.body);
 
-    let notaExistente = await Grade.findOne({
-      estudiante: estudianteId,
-      asignatura: asignaturaId,
-      nombreEval: nombreEval,
-    });
-
-    if (notaExistente) {
-      notaExistente.calificacion = calificacion;
-      // Guardamos el ID para el populate, o el texto si tu modelo almacena Strings
-      notaExistente.modificadoPor = profesorId;
-
-      // 🕒 Forzamos la actualización de la fecha manualmente si no usas timestamps
-      notaExistente.fechaModificacion = new Date();
-
-      await notaExistente.save();
+    // El controlador decide el código HTTP según lo que hizo el servicio
+    if (resultado.accion === "actualizada") {
       return res.json({
         success: true,
         msg: "Nota actualizada y auditada con éxito.",
-        nota: notaExistente,
+        nota: resultado.nota,
       });
     } else {
-      const nuevaNota = new Grade({
-        estudiante: estudianteId,
-        asignatura: asignaturaId,
-        nombreEval,
-        calificacion,
-        modificadoPor: profesorId,
-        fechaModificacion: new Date(), // 🕒 Registro de tiempo inicial
+      return res.status(201).json({
+        success: true,
+        msg: "Nota registrada con éxito.",
+        nota: resultado.nota,
       });
-      await nuevaNota.save();
-      return res
-        .status(201)
-        .json({
-          success: true,
-          msg: "Nota registrada con éxito.",
-          nota: nuevaNota,
-        });
     }
   } catch (error) {
     console.error(error);
+
+    // Capturamos el error de validación específico
+    if (error.message.includes("entre 1.0 y 7.0")) {
+      return res.status(400).json({
+        success: false,
+        msg: error.message,
+      });
+    }
+
     res.status(500).send("Error al procesar la calificación");
   }
 };
@@ -72,10 +40,7 @@ exports.obtenerNotasPorAsignatura = async (req, res) => {
   const { asignaturaId } = req.params;
 
   try {
-    const notas = await Grade.find({ asignatura: asignaturaId }).populate(
-      "modificadoPor",
-      "nombre correo",
-    );
+    const notas = await gradeService.obtenerNotasPorAsignatura(asignaturaId);
     res.json({ success: true, notas });
   } catch (error) {
     console.error(error);
