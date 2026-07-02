@@ -1,5 +1,5 @@
 // server/services/authService.js
-const User = require("../models/User");
+const user = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -21,7 +21,7 @@ exports.registrarUsuario = async (datos) => {
     correo = `${usuarioLimpio}@uct.cl`;
   }
 
-  let usuarioExiste = await User.findOne({ correo });
+  let usuarioExiste = await user.findOne({ correo });
   if (usuarioExiste) {
     throw new Error(
       `El correo UCT [${correo}] ya está registrado. Utilice otro.`,
@@ -31,7 +31,7 @@ exports.registrarUsuario = async (datos) => {
   const salt = await bcrypt.genSalt(10);
   const passwordHasheada = await bcrypt.hash(password, salt);
 
-  const nuevoUsuario = new User({
+  const nuevoUsuario = new user({
     nombre,
     correo,
     password: passwordHasheada,
@@ -45,7 +45,7 @@ exports.registrarUsuario = async (datos) => {
 
 // 2. INICIO DE SESIÓN
 exports.login = async (correo, password) => {
-  const usuario = await User.findOne({ correo });
+  const usuario = await user.findOne({ correo });
   if (!usuario) {
     throw new Error("Usuario no encontrado");
   }
@@ -92,7 +92,7 @@ exports.renovarToken = async (refreshToken) => {
       process.env.JWT_REFRESH_SECRET || "firma_refresh_secreta_uct",
     );
 
-    const usuario = await User.findById(verificado.id);
+    const usuario = await user.findById(verificado.id);
     if (!usuario) {
       throw new Error("Usuario no encontrado");
     }
@@ -111,5 +111,5 @@ exports.renovarToken = async (refreshToken) => {
 
 // 4. OBTENER USUARIOS
 exports.obtenerUsuarios = async () => {
-  return await User.find().select("-password");
+  return await user.find().select("-password");
 };

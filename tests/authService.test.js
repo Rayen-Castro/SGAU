@@ -1,6 +1,6 @@
 // tests/authService.test.js
 const authService = require("../server/services/authService");
-const User = require("../server/models/user");
+const user = require("../server/models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -31,7 +31,7 @@ describe("Pruebas unitarias para authService - iniciarSesion", () => {
 
   test("Debería lanzar un error si el usuario no existe", async () => {
     // Simulamos que el usuario no fue encontrado en la BD
-    User.findOne.mockResolvedValue(null);
+    user.findOne.mockResolvedValue(null);
 
     await expect(
       authService.login("correo@duoc.cl", "password123"),
@@ -46,7 +46,7 @@ describe("Pruebas unitarias para authService - iniciarSesion", () => {
     };
 
     // Simulamos que encuentra al usuario
-    User.findOne.mockResolvedValue(usuarioFalso);
+    user.findOne.mockResolvedValue(usuarioFalso);
     // Simulamos que bcrypt dice "sí, la contraseña coincide"
     bcrypt.compare.mockResolvedValue(true);
 
@@ -55,7 +55,7 @@ describe("Pruebas unitarias para authService - iniciarSesion", () => {
     // Verificaciones finales
     expect(resultado).toHaveProperty("accessToken");
     expect(resultado.accessToken).toBe("token-falso-123");
-    expect(User.findOne).toHaveBeenCalledTimes(1);
+    expect(user.findOne).toHaveBeenCalledTimes(1);
     expect(bcrypt.compare).toHaveBeenCalledTimes(1);
   });
 });
