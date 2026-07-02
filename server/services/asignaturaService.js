@@ -5,7 +5,7 @@ const Asignatura = require("../models/asignatura");
 exports.crearAsignatura = async (datosAsignatura) => {
   // Regla de Negocio: Validar que las ponderaciones sumen 100
   const sumaPonderaciones = datosAsignatura.evaluaciones.reduce(
-    (total, eval) => total + Number(eval.ponderacion),
+    (total, evaluación) => total + Number(evaluación.ponderacion),
     0,
   );
 
