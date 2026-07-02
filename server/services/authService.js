@@ -23,7 +23,9 @@ exports.registrarUsuario = async (datos) => {
 
   let usuarioExiste = await User.findOne({ correo });
   if (usuarioExiste) {
-    throw new Error(`UCT correo [${correo}] oĩma tembiporúpe. Eipuru ambue.`);
+    throw new Error(
+      `El correo UCT [${correo}] ya está registrado. Utilice otro.`,
+    );
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -45,13 +47,13 @@ exports.registrarUsuario = async (datos) => {
 exports.login = async (correo, password) => {
   const usuario = await User.findOne({ correo });
   if (!usuario) {
-    throw new Error("Monei ava ndoikói (Ava ndoikéi tembiporúpe)");
+    throw new Error("Usuario no encontrado");
   }
 
-  // Password comparison
+  // Comparación de contraseñas
   const match = await bcrypt.compare(password, usuario.password);
   if (!match) {
-    throw new Error("Ñe'ẽñemi ndoikói (Eha'arã jey)");
+    throw new Error("Contraseña incorrecta");
   }
 
   const payloadAccess = { id: usuario._id, rol: usuario.rol };
@@ -82,7 +84,7 @@ exports.login = async (correo, password) => {
   };
 };
 
-// 3. (Renovar Access Token)
+// 3. RENOVAR ACCESS TOKEN
 exports.renovarToken = async (refreshToken) => {
   try {
     const verificado = jwt.verify(
@@ -92,7 +94,7 @@ exports.renovarToken = async (refreshToken) => {
 
     const usuario = await User.findById(verificado.id);
     if (!usuario) {
-      throw new Error("Ava ndoikói tembiporúpe");
+      throw new Error("Usuario no encontrado");
     }
 
     const newAccessToken = jwt.sign(
@@ -103,13 +105,11 @@ exports.renovarToken = async (refreshToken) => {
 
     return { newAccessToken };
   } catch (error) {
-    throw new Error(
-      "Error al actualizar el token (vuelva a iniciar sesión en el servidor maestro).",
-    );
+    throw new Error("Error al actualizar el token. Vuelva a iniciar sesión.");
   }
 };
 
-// 4. Obtener Usuarios
+// 4. OBTENER USUARIOS
 exports.obtenerUsuarios = async () => {
   return await User.find().select("-password");
 };
