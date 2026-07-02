@@ -22,7 +22,10 @@ describe("Pruebas de rutas: asignaturaRoutes", () => {
       expect.any(Function),
     );
 
-    expect(mockRouter.get).toHaveBeenCalledWith("/", expect.any(Function));
+    expect(mockRouter.get).toHaveBeenCalledWith(
+      "/guardar",
+      expect.any(Function),
+    );
     expect(mockRouter.get).toHaveBeenCalledWith(
       "/docente/:docenteId",
       expect.any(Function),
