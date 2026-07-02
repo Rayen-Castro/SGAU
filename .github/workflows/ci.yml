@@ -17,6 +17,8 @@ jobs:
       # Paso A: Descargar tu código en el servidor de GitHub
       - name: Descargar el repositorio
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # Paso B: Instalar Node.js en ese servidor
       - name: Configurar Node.js
