@@ -34,4 +34,4 @@ const GradeSchema = new mongoose.Schema(
   },
 );
 
-module.exports = mongoose.model("Grade", GradeSchema);
+module.exports = mongoose.model("grade", GradeSchema);

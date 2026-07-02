@@ -1,5 +1,5 @@
 // server/services/gradeService.js
-const grade = require("../server/models/grade");
+const grade = require("../models/grade");
 
 // 1. GUARDAR O ACTUALIZAR UNA NOTA
 exports.guardarCalificacion = async (datos) => {
