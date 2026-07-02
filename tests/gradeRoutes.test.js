@@ -15,7 +15,10 @@ describe("Pruebas de rutas: gradeRoutes", () => {
   test("Debería registrar correctamente las rutas de calificaciones", () => {
     require("../server/routes/gradeRoutes");
 
-    expect(mockRouter.post).toHaveBeenCalledWith("/", expect.any(Function));
+    expect(mockRouter.post).toHaveBeenCalledWith(
+      "/guardar",
+      expect.any(Function),
+    );
     expect(mockRouter.get).toHaveBeenCalledWith(
       "/asignatura/:asignaturaId",
       expect.any(Function),
