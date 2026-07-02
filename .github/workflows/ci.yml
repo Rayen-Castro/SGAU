@@ -22,7 +22,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20" # Usa la versión de Node que tengas instalada
+          node-version: "24"
 
       # Paso C: Instalar las dependencias (Mongoose, Jest, etc.)
       - name: Instalar dependencias

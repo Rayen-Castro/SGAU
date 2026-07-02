@@ -1,9 +1,9 @@
 // tests/gradeService.test.js
 const gradeService = require("../server/services/gradeService");
-const Grade = require("../server/models/Grade");
+const grade = require("../server/models/grade");
 
 // Definimos el mock encapsulando todo adentro para evitar errores de memoria (Hoisting)
-jest.mock("../server/models/Grade", () => {
+jest.mock("../server/models/grade", () => {
   // 1. Simulamos el constructor de Mongoose
   const MockModel = function (datos) {
     // Esto copia los datos (estudianteId, calificacion, etc.) al objeto vacío
@@ -47,13 +47,13 @@ describe("Pruebas unitarias para gradeService - guardarCalificacion", () => {
     };
 
     // Le decimos al mock qué devolver cuando se llame a findOne
-    Grade.findOne.mockResolvedValue(null);
+    grade.findOne.mockResolvedValue(null);
 
     const resultado = await gradeService.guardarCalificacion(datosValidos);
 
     // Verificaciones
     expect(resultado.accion).toBe("creada");
     expect(resultado.nota.calificacion).toBe(6.5);
-    expect(Grade.findOne).toHaveBeenCalledTimes(1);
+    expect(grade.findOne).toHaveBeenCalledTimes(1);
   });
 });
