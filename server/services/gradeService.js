@@ -1,5 +1,5 @@
 // server/services/gradeService.js
-const Grade = require("../models/Grade");
+const grade = require("../server/models/grade");
 
 // 1. GUARDAR O ACTUALIZAR UNA NOTA
 exports.guardarCalificacion = async (datos) => {
@@ -12,7 +12,7 @@ exports.guardarCalificacion = async (datos) => {
   }
 
   // Lógica de BD: Buscar existencia
-  let notaExistente = await Grade.findOne({
+  let notaExistente = await grade.findOne({
     estudiante: estudianteId,
     asignatura: asignaturaId,
     nombreEval: nombreEval,
@@ -27,7 +27,7 @@ exports.guardarCalificacion = async (datos) => {
     await notaExistente.save();
     return { nota: notaExistente, accion: "actualizada" };
   } else {
-    const nuevaNota = new Grade({
+    const nuevaNota = new grade({
       estudiante: estudianteId,
       asignatura: asignaturaId,
       nombreEval,
@@ -43,8 +43,7 @@ exports.guardarCalificacion = async (datos) => {
 
 // 2. OBTENER TODAS LAS NOTAS DE UNA ASIGNATURA ESPECÍFICA
 exports.obtenerNotasPorAsignatura = async (asignaturaId) => {
-  return await Grade.find({ asignatura: asignaturaId }).populate(
-    "modificadoPor",
-    "nombre correo",
-  );
+  return await grade
+    .find({ asignatura: asignaturaId })
+    .populate("modificadoPor", "nombre correo");
 };
