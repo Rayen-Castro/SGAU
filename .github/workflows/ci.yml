@@ -31,3 +31,10 @@ jobs:
       # Paso D: Ejecutar tus tests y generar el reporte de cobertura
       - name: Correr pruebas unitarias
         run: npm run test:coverage
+
+      # Paso E: Analizar el código con SonarQube
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
