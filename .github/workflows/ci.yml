@@ -1,0 +1,33 @@
+name: Integracion Continua (CI)
+
+# 1. ¿Cuándo se ejecuta? Cada vez que hagas un push a la rama principal (main)
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+# 2. ¿Qué va a hacer?
+jobs:
+  test-and-build:
+    name: Ejecutar Tests
+    runs-on: ubuntu-latest # GitHub nos presta un servidor Linux virtual
+
+    steps:
+      # Paso A: Descargar tu código en el servidor de GitHub
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      # Paso B: Instalar Node.js en ese servidor
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Usa la versión de Node que tengas instalada
+
+      # Paso C: Instalar las dependencias (Mongoose, Jest, etc.)
+      - name: Instalar dependencias
+        run: npm install
+
+      # Paso D: Ejecutar tus tests y generar el reporte de cobertura
+      - name: Correr pruebas unitarias
+        run: npm run test:coverage
