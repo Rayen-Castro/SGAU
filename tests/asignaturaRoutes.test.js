@@ -17,7 +17,11 @@ describe("Pruebas de rutas: asignaturaRoutes", () => {
   test("Debería registrar correctamente las rutas de asignaturas", () => {
     require("../server/routes/asignaturaRoutes");
 
-    expect(mockRouter.post).toHaveBeenCalledWith("/", expect.any(Function));
+    expect(mockRouter.post).toHaveBeenCalledWith(
+      "/crear",
+      expect.any(Function),
+    );
+
     expect(mockRouter.get).toHaveBeenCalledWith("/", expect.any(Function));
     expect(mockRouter.get).toHaveBeenCalledWith(
       "/docente/:docenteId",
