@@ -9,11 +9,10 @@ export function Login({
   error,
   manejarLogin,
 }) {
-  // Estilos reutilizados del archivo original
   const inputStyle = {
     width: "100%",
     padding: "8px",
-    marginBottom: "12px", // Ajustado un poco para dar aire entre inputs
+    marginBottom: "12px",
     borderRadius: "6px",
     border: "1px solid #cbd5e0",
     boxSizing: "border-box",
@@ -24,7 +23,7 @@ export function Login({
     width: "100%",
     padding: "10px",
     color: "white",
-    backgroundColor: "#004a99", // Traído del diseño original
+    backgroundColor: "#004a99",
     border: "none",
     borderRadius: "6px",
     cursor: "pointer",
@@ -41,7 +40,7 @@ export function Login({
         boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
         maxWidth: "400px",
         margin: "auto",
-        marginTop: "10vh", // Centrado vertical aproximado en la pantalla
+        marginTop: "10vh",
       }}
     >
       <h2 style={{ textAlign: "center", color: "#333", marginTop: 0 }}>

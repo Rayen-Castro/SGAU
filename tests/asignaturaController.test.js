@@ -1,10 +1,10 @@
 const asignaturaController = require("../server/controllers/asignaturaController");
 const asignaturaService = require("../server/services/asignaturaService");
 
-// 1. Simulamos el servicio completo (El Chef de las Asignaturas)
+// 1. Simulamos el servicio completo
 jest.mock("../server/services/asignaturaService");
 
-// 2. Función auxiliar para simular el objeto 'res' (La Respuesta)
+// 2. Función auxiliar para simular el objeto 'res'
 const mockResponse = () => {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
@@ -18,7 +18,6 @@ describe("Pruebas unitarias para asignaturaController", () => {
   let res;
 
   beforeAll(() => {
-    // Ocultamos console.error para no llenar la terminal de letras rojas falsas
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -40,7 +39,6 @@ describe("Pruebas unitarias para asignaturaController", () => {
         evaluaciones: [{ nombre: "Solemne 1" }],
       };
 
-      // Simulamos que el servicio crea la asignatura correctamente
       asignaturaService.crearAsignatura.mockResolvedValue({
         nombreAsignatura: "Cálculo 1",
         evaluaciones: [{ nombre: "Solemne 1" }],
@@ -56,7 +54,7 @@ describe("Pruebas unitarias para asignaturaController", () => {
 
     test("Debería devolver 400 si MongoDB arroja código de duplicado (11000)", async () => {
       const errorDuplicado = new Error("Llave duplicada");
-      errorDuplicado.code = 11000; // Forzamos el código de error
+      errorDuplicado.code = 11000;
       asignaturaService.crearAsignatura.mockRejectedValue(errorDuplicado);
 
       await asignaturaController.crearAsignatura(req, res);

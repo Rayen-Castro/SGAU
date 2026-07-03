@@ -3,7 +3,7 @@ const user = require("../server/models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// 1. Simulamos el modelo User de Mongoose
+// 1. Simulae el modelo User de Mongoose
 jest.mock("../server/models/user", () => {
   const MockUser = function (datos) {
     Object.assign(this, datos);
@@ -12,7 +12,6 @@ jest.mock("../server/models/user", () => {
   MockUser.findOne = jest.fn();
   MockUser.findById = jest.fn();
 
-  // Simulamos find().select() encadenados
   MockUser.find = jest.fn().mockReturnValue({
     select: jest.fn().mockResolvedValue([{ nombre: "Usuario Prueba" }]),
   });
@@ -20,14 +19,14 @@ jest.mock("../server/models/user", () => {
   return MockUser;
 });
 
-// 2. Simulamos bcrypt
+// 2. Simular bcrypt
 jest.mock("bcryptjs", () => ({
   compare: jest.fn(),
   hash: jest.fn().mockResolvedValue("password-encriptado"),
   genSalt: jest.fn().mockResolvedValue("salt"),
 }));
 
-// 3. Simulamos jsonwebtoken
+// 3. Simular jsonwebtoken
 jest.mock("jsonwebtoken", () => ({
   sign: jest.fn().mockReturnValue("token-falso-123"),
   verify: jest.fn().mockReturnValue({ id: "user123" }),

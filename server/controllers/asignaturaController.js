@@ -4,7 +4,6 @@ const asignaturaService = require("../services/asignaturaService");
 // 1. CREAR UNA ASIGNATURA CON SU PLAN DE EVALUACIONES
 exports.crearAsignatura = async (req, res) => {
   try {
-    // El controlador solo delega la tarea al servicio pasándole el body
     const nuevaAsignatura = await asignaturaService.crearAsignatura(req.body);
 
     res.status(201).json({
@@ -14,7 +13,6 @@ exports.crearAsignatura = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    // Capturamos el error de llave duplicada de MongoDB
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
@@ -22,7 +20,6 @@ exports.crearAsignatura = async (req, res) => {
       });
     }
 
-    // Capturamos el error de validación del 100% que lanzamos desde el servicio
     if (error.message.includes("ponderaciones")) {
       return res.status(400).json({
         success: false,
@@ -75,7 +72,6 @@ exports.actualizarAsignatura = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Delegamos la actualización completa al servicio pasándole el ID y los nuevos datos
     const asignaturaActualizada = await asignaturaService.actualizarAsignatura(
       id,
       req.body,
@@ -96,7 +92,6 @@ exports.actualizarAsignatura = async (req, res) => {
   } catch (error) {
     console.error("Error en actualizarAsignatura:", error);
 
-    // Capturamos el error de llave duplicada de MongoDB (por si cambian el código a uno que ya existe)
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
@@ -104,7 +99,6 @@ exports.actualizarAsignatura = async (req, res) => {
       });
     }
 
-    // Capturamos el error de validación de ponderaciones (suma != 100%) lanzado desde tu capa de servicio
     if (error.message && error.message.includes("ponderaciones")) {
       return res.status(400).json({
         success: false,
@@ -121,7 +115,6 @@ exports.eliminarAsignatura = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Delegamos la eliminación al servicio
     const asignaturaEliminada = await asignaturaService.eliminarAsignatura(id);
 
     if (!asignaturaEliminada) {

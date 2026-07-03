@@ -18,7 +18,6 @@ describe("Pruebas unitarias para gradeController", () => {
   let res;
 
   beforeAll(() => {
-    // Silenciamos los errores en consola durante los tests
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -37,7 +36,6 @@ describe("Pruebas unitarias para gradeController", () => {
     test("Debería devolver 200 si la nota fue ACTUALIZADA", async () => {
       req.body = { estudiante: "123", asignatura: "456", valor: 6.5 };
 
-      // Simulamos que el servicio detectó una nota existente y la actualizó
       gradeService.guardarCalificacion.mockResolvedValue({
         accion: "actualizada",
         nota: { valor: 6.5 },
@@ -45,7 +43,6 @@ describe("Pruebas unitarias para gradeController", () => {
 
       await gradeController.guardarCalificacion(req, res);
 
-      // En Express, res.json() por defecto envía un status 200, por lo que verificamos que NO se llamó a status(201)
       expect(res.status).not.toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -58,7 +55,6 @@ describe("Pruebas unitarias para gradeController", () => {
     test("Debería devolver 201 si la nota fue CREADA por primera vez", async () => {
       req.body = { estudiante: "123", asignatura: "456", valor: 7.0 };
 
-      // Simulamos que el servicio creó una nota nueva
       gradeService.guardarCalificacion.mockResolvedValue({
         accion: "creada",
         nota: { valor: 7.0 },
@@ -76,7 +72,6 @@ describe("Pruebas unitarias para gradeController", () => {
     });
 
     test("Debería devolver 400 si la nota no está entre 1.0 y 7.0", async () => {
-      // Simulamos que el servicio arrojó el error exacto que espera tu 'if'
       gradeService.guardarCalificacion.mockRejectedValue(
         new Error("La nota debe estar entre 1.0 y 7.0"),
       );

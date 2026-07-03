@@ -44,7 +44,6 @@ exports.obtenerPorEstudiante = async (estudianteId) => {
 
 // 5. ACTUALIZAR ASIGNATURA (Con Validación de Regla de Negocio)
 exports.actualizarAsignatura = async (id, datosActualizados) => {
-  // Si la actualización incluye el arreglo de evaluaciones, volvemos a exigir el 100%
   if (datosActualizados.evaluaciones) {
     const sumaPonderaciones = datosActualizados.evaluaciones.reduce(
       (total, evaluacion) => total + Number(evaluacion.ponderacion),
@@ -58,9 +57,6 @@ exports.actualizarAsignatura = async (id, datosActualizados) => {
     }
   }
 
-  // Realizamos la actualización en MongoDB
-  // { new: true } hace que retorne el documento ya modificado
-  // { runValidators: true } asegura que se respeten los límites del modelo Mongoose
   return await Asignatura.findByIdAndUpdate(id, datosActualizados, {
     new: true,
     runValidators: true,

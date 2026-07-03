@@ -22,7 +22,6 @@ export function useAcademicApp() {
     rol: "Estudiante",
     carrera: "Ingeniería Civil Informática",
   });
-  // Nuevo con carreras y facultades
   const facultadesYCarreras = {
     "Facultad de Ingeniería": [
       "Ingeniería Civil Informática",
@@ -34,9 +33,9 @@ export function useAcademicApp() {
 
   const carrerasDisponibles = Object.values(facultadesYCarreras).flat();
 
-  // Estados nuevos para el formulario de crear ramo
   const [facultadRamo, setFacultadRamo] = useState("");
   const [carreraRamo, setCarreraRamo] = useState("");
+
   // ==========================================
   // 3. ESTADOS DE GESTIÓN DE ASIGNATURAS (ADMIN)
   // ==========================================
@@ -85,9 +84,6 @@ export function useAcademicApp() {
   // 7. FUNCIONES DE BÚSQUEDA INTERNA (HELPERS)
   // ==========================================
 
-  /**
-   * Buscador de notas seguro para la planilla del Docente (Asegura la asignatura activa)
-   */
   const buscarNotaEnBase = (estudianteId, nombreEval) => {
     return baseNotas.find(
       (n) =>
@@ -98,9 +94,6 @@ export function useAcademicApp() {
     );
   };
 
-  /**
-   * Buscador seguro de notas por Alumno y Asignatura para el panel del Estudiante
-   */
   const buscarNotaEstudianteAsignatura = (
     estudianteId,
     asignaturaId,
@@ -168,7 +161,6 @@ export function useAcademicApp() {
 
       if (data.success) {
         setAsignaturasEstudiante(data.asignaturas);
-        // Descargar el historial de notas de cada asignatura inscrita
         for (const asig of data.dashboards || data.asignaturas) {
           await consultarNotasParaEstudiante(asig._id);
         }
@@ -186,7 +178,6 @@ export function useAcademicApp() {
       const data = await resp.json();
       if (data.success) {
         setBaseNotas((prev) => {
-          // Evitamos duplicados limpiando las notas antiguas de esta asignatura específica
           const filtradas = prev.filter(
             (n) =>
               n.asignatura !== asignaturaId &&
@@ -259,28 +250,26 @@ export function useAcademicApp() {
     setMsgRegistro("");
 
     try {
-      // 1. GENERACIÓN DE CORREO INSTITUCIONAL (BR-10)
-      // Usamos estrictamente el primer nombre y el primer apellido
+      // 1. GENERACIÓN DE CORREO INSTITUCIONAL
       const nombreLimpio = nuevoUsuario.primerNombre.toLowerCase().trim();
       const apellidoLimpio = nuevoUsuario.primerApellido.toLowerCase().trim();
       const dominio =
         nuevoUsuario.rol === "Estudiante" ? "alu.uct.cl" : "uct.cl";
       const correoGenerado = `${apellidoLimpio}${nombreLimpio}@${dominio}`;
 
-      // 2. GENERADOR DE CONTRASEÑA ESTRICTA (BR-10)
+      // 2. GENERADOR DE CONTRASEÑA ESTRICTA
       const nums = "0123456789";
       const letras = "abcdefghijklmnopqrstuvwxyz";
-      const especiales = "*."; // Solo asterisco o punto, sin espacios
+      const especiales = "*.";
 
       const getRand = (str) => str[Math.floor(Math.random() * str.length)];
 
       // Validador de no-consecutivos y no-repetidos
       const esValido = (prev, curr, charset) => {
-        if (prev === curr) return false; // Evita repeticiones (ej. 88, mm)
+        if (prev === curr) return false;
         const prevIdx = charset.indexOf(prev);
         const currIdx = charset.indexOf(curr);
-        if (Math.abs(prevIdx - currIdx) === 1) return false; // Evita secuencias (ej. 12, ab)
-        return true;
+        if (Math.abs(prevIdx - currIdx) === 1) return false;
       };
 
       let passwordGenerada = "";
@@ -310,16 +299,15 @@ export function useAcademicApp() {
         lastChar = c;
       }
 
-      // 3. CONCATENAR EL NOMBRE COMPLETO PARA LA BASE DE DATOS
       const nombreUnificado =
         `${nuevoUsuario.primerNombre} ${nuevoUsuario.segundoNombre} ${nuevoUsuario.tercerNombre} ${nuevoUsuario.primerApellido} ${nuevoUsuario.segundoApellido}`
-          .replace(/\s+/g, " ") // Elimina dobles espacios si el tercer nombre está vacío
+          .replace(/\s+/g, " ")
           .trim();
 
       // 4. EMPAQUETAR LOS DATOS
       const usuarioFinal = {
         ...nuevoUsuario,
-        nombre: nombreUnificado, // Enviamos el nombre fusionado a MongoDB
+        nombre: nombreUnificado,
         correo: correoGenerado,
         password: passwordGenerada,
       };
@@ -337,9 +325,8 @@ export function useAcademicApp() {
         setMsgRegistro(
           `✅ ${data.msg} | Correo: ${correoGenerado} | Clave: ${passwordGenerada}`,
         );
-        consultarUsuarios(); // Refresca la lista si tienes esta función
+        consultarUsuarios();
 
-        // Limpiar el estado con los 5 campos nuevos
         setNuevoUsuario({
           primerNombre: "",
           segundoNombre: "",
@@ -388,7 +375,6 @@ export function useAcademicApp() {
     setCodigoAsignatura("");
     setPeriodo("2026-1");
     setDocenteSeleccionado("");
-    // Si usas más campos como carreraRamo o facultadRamo, puedes limpiarlos aquí:
     setFacultadRamo("");
     setCarreraRamo("");
   };
@@ -407,7 +393,6 @@ export function useAcademicApp() {
     setCarreraRamo(asig.carrera || "");
 
     if (asig.estudiantes && setEstudiantesSeleccionados) {
-      // Si viene un array de objetos o IDs, mapeamos solo sus IDs strings
       const idsEstudiantes = asig.estudiantes.map((est) => est._id || est);
       setEstudiantesSeleccionados(idsEstudiantes);
     }
@@ -444,10 +429,10 @@ export function useAcademicApp() {
           docente: docenteSeleccionado,
           estudiantesIds: estudiantesSeleccionados,
           evaluaciones,
-          tieneAyudantia, // nuevo
-          ayudanteId: ayudanteSeleccionado, // nuevo
-          tieneExamenIntegral, // nuevo
-          porcentajeExamenIntegral, // nuevo
+          tieneAyudantia,
+          ayudanteId: ayudanteSeleccionado,
+          tieneExamenIntegral,
+          porcentajeExamenIntegral,
         }),
       });
       const data = await resp.json();
@@ -471,7 +456,6 @@ export function useAcademicApp() {
   const manejarActualizarAsignatura = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    // Validación preventiva: Si el estado del docente está vacío, no dejamos enviar la petición
     if (!docenteSeleccionado) {
       setMsgAsignatura(
         "❌ Error: Debes seleccionar un docente para la asignatura.",
@@ -517,7 +501,6 @@ export function useAcademicApp() {
       const resultado = await respuesta.json();
 
       if (resultado.success) {
-        // Sincronizamos React con la asignatura modificada que nos devuelve Express
         setListaAsignaturas((prevAsignaturas) =>
           prevAsignaturas.map((asig) =>
             asig._id === idAsignaturaEditando ? resultado.asignatura : asig,
@@ -525,7 +508,7 @@ export function useAcademicApp() {
         );
 
         setMsgAsignatura(resultado.msg);
-        cancelarEdicion(); // Limpiamos el formulario y cerramos el modo edición
+        cancelarEdicion();
       }
     } catch (error) {
       console.error("Error en manejarActualizarAsignatura:", error);
@@ -535,7 +518,6 @@ export function useAcademicApp() {
 
   // 2. ELIMINAR ASIGNATURA
   const manejarEliminarAsignatura = async (id) => {
-    // Agregamos una confirmación nativa antes de proceder con el borrado en cascada
     if (
       !window.confirm(
         "¿Estás seguro de que deseas eliminar permanentemente esta asignatura?",
@@ -560,7 +542,6 @@ export function useAcademicApp() {
         );
       }
 
-      // Filtramos el estado local eliminando el documento borrado
       setListaAsignaturas((prevAsignaturas) =>
         prevAsignaturas.filter((asig) => asig._id !== id),
       );
@@ -645,7 +626,6 @@ export function useAcademicApp() {
     let ponderacionEvaluada = 0;
     let notasDetalle = [];
 
-    // Recorrer la configuración de evaluaciones fijadas por el Administrador
     asignatura.evaluaciones?.forEach((ev) => {
       const registroNota = buscarNotaEstudianteAsignatura(
         estudianteId,
@@ -673,28 +653,25 @@ export function useAcademicApp() {
       });
     });
 
-    // Cálculos estadísticos básicos
     const promedioAcumulado =
       ponderacionEvaluada > 0
         ? parseFloat((sumaPuntosAcumulados / ponderacionEvaluada).toFixed(2))
         : 0;
     const ponderacionRestante = 100 - ponderacionEvaluada;
 
-    // Ecuación Predictiva Chilena (Aprobación con 4.0)
     const NOTA_MINIMA_APROBAR = 4.0;
     let notaNecesaria = 0;
     let riesgoInminente = false;
     let reprobadoMatematicamente = false;
 
     if (ponderacionRestante > 0) {
-      // Fórmula matemática: (400 - Puntos_Acumulados) / Ponderacion_Restante
       const calculo = (400 - sumaPuntosAcumulados) / ponderacionRestante;
       notaNecesaria = parseFloat(calculo.toFixed(2));
 
       if (notaNecesaria > 7.0) {
-        reprobadoMatematicamente = true; // Ni con un 7.0 en todo lo restante alcanza
+        reprobadoMatematicamente = true;
       } else if (notaNecesaria > 4.5) {
-        riesgoInminente = true; // Requiere alta exigencia para salvar la materia
+        riesgoInminente = true;
       }
     } else {
       if (promedioAcumulado < NOTA_MINIMA_APROBAR) {

@@ -1,24 +1,23 @@
 // tests/asignaturaService.test.js
 
-// 1. ⚠️ PRIMERO DEFINIMOS EL MOCKQUERY (Arriba de todo para evitar el ReferenceError)
+// 1. MOCKQUERY
 const mockQuery = {
-  populate: jest.fn().mockReturnThis(), // Permite encadenar .populate().populate()
-  lean: jest.fn().mockReturnThis(), // Permite encadenar .lean()
-  then: jest.fn(), // Intercepta el 'await' de la consulta
+  populate: jest.fn().mockReturnThis(),
+  lean: jest.fn().mockReturnThis(),
+  then: jest.fn(),
 };
 
-// 2. LUEGO IMPORTAMOS LOS ARCHIVOS DEL PROYECTO
+// 2. INCORPORACIÓN
 const asignaturaService = require("../server/services/asignaturaService");
 const Asignatura = require("../server/models/asignatura");
 
-// 3. CONFIGURAMOS EL MOCK DE JEST
+// 3. CONFIGURAR MOCK DE JEST
 jest.mock("../server/models/asignatura", () => {
   const MockModel = function (datos) {
     Object.assign(this, datos);
     this.save = jest.fn().mockResolvedValue(this);
   };
 
-  // Mapeamos los métodos estáticos del modelo Mongoose a nuestros mocks
   MockModel.find = jest.fn().mockReturnValue(mockQuery);
   MockModel.findByIdAndUpdate = jest.fn().mockReturnValue(mockQuery);
   MockModel.findByIdAndDelete = jest.fn();
@@ -30,14 +29,12 @@ describe("Pruebas unitarias para asignaturaService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Configuración por defecto: Las consultas de lectura (find) devuelven un Array
     mockQuery.then.mockImplementation(function (resolve) {
       resolve([{ nombreAsignatura: "Simulación" }]);
     });
   });
 
-  // =========================================================
-  // --- PRUEBAS: crearAsignatura
+  // PRUEBAS: crearAsignatura
   // =========================================================
   describe("crearAsignatura", () => {
     test("Debería lanzar error si las ponderaciones NO suman 100", async () => {
@@ -60,7 +57,7 @@ describe("Pruebas unitarias para asignaturaService", () => {
         nombreAsignatura: "Arquitectura de Software",
         evaluaciones: [
           { nombre: "Prueba 1", ponderacion: 50 },
-          { nombre: "Prueba 2", ponderacion: 50 }, // Suma 100%
+          { nombre: "Prueba 2", ponderacion: 50 },
         ],
       };
 
@@ -116,7 +113,7 @@ describe("Pruebas unitarias para asignaturaService", () => {
       const datosActualizados = {
         evaluaciones: [
           { nombreEval: "Solemne 1", ponderacion: 30 },
-          { nombreEval: "Solemne 2", ponderacion: 40 }, // Suma 70%
+          { nombreEval: "Solemne 2", ponderacion: 40 },
         ],
       };
 
@@ -131,7 +128,7 @@ describe("Pruebas unitarias para asignaturaService", () => {
       const datosActualizados = {
         evaluaciones: [
           { nombreEval: "Solemne 1", ponderacion: 60 },
-          { nombreEval: "Solemne 2", ponderacion: 40 }, // Suma 100%
+          { nombreEval: "Solemne 2", ponderacion: 40 },
         ],
       };
 

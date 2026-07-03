@@ -30,7 +30,7 @@ const GradeSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Esto genera automáticamente "createdAt" y "updatedAt" (Fecha y hora)
+    timestamps: true,
   },
 );
 

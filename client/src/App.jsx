@@ -9,7 +9,7 @@ import { StudentPanel } from "./components/StudentPanel";
 function App() {
   const app = useAcademicApp();
 
-  // Forzar que el cuerpo de la página del navegador siempre sea claro
+  // light mode
   useEffect(() => {
     document.body.style.backgroundColor = "#f0f2f5";
     document.body.style.margin = "0";
@@ -57,7 +57,7 @@ function App() {
       >
         <div>
           <h2 style={{ margin: 0, color: "#004a99" }}>
-            🏫 Sistema Académico Integrado
+            SGAU - Sistema de Gestión Académica Universitaria
           </h2>
           <span style={{ fontSize: "13px", color: "#718096" }}>
             Sesión activa: <strong>{app.usuarioLogueado.nombre}</strong> (

@@ -46,12 +46,11 @@ describe("Pruebas unitarias para gradeService - guardarCalificacion", () => {
       profesorId: "60d5ecb54ddae40a9c8b4563",
     };
 
-    // Le decimos al mock qué devolver cuando se llame a findOne
     grade.findOne.mockResolvedValue(null);
 
     const resultado = await gradeService.guardarCalificacion(datosValidos);
 
-    // Verificaciones
+    // Verify
     expect(resultado.accion).toBe("creada");
     expect(resultado.nota.calificacion).toBe(6.5);
     expect(grade.findOne).toHaveBeenCalledTimes(1);

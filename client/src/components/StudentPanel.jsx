@@ -7,7 +7,6 @@ export function StudentPanel({
 }) {
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-      {/* ── Header mejorado ── */}
       <div
         style={{
           background: "linear-gradient(135deg, #004a99, #2b6cb0)",
@@ -22,7 +21,7 @@ export function StudentPanel({
       >
         <div>
           <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "bold" }}>
-            🎓 Mi Progreso Académico Semestral
+            Mi Progreso Académico Semestral
           </h3>
           <p style={{ margin: "4px 0 0 0", fontSize: "13px", opacity: 0.85 }}>
             Desglose de calificaciones, auditoría y proyecciones predictivas del
@@ -245,7 +244,7 @@ export function StudentPanel({
                       color: "#4a5568",
                     }}
                   >
-                    📋 Registro Oficial de Calificaciones:
+                    Registro Oficial de Calificaciones:
                   </span>
 
                   {/* Mensaje si todas están pendientes */}
@@ -263,7 +262,7 @@ export function StudentPanel({
                         textAlign: "center",
                       }}
                     >
-                      ⏳ Aún no hay calificaciones registradas para este ramo.
+                      Aún no hay calificaciones registradas para este ramo.
                     </div>
                   )}
 
@@ -329,7 +328,7 @@ export function StudentPanel({
                               fontStyle: "italic",
                             }}
                           >
-                            ✍️ Firmado por: {notaObj.modificadoPor}
+                            Firmado por: {notaObj.modificadoPor}
                           </span>
                         )}
                       </div>
@@ -337,7 +336,7 @@ export function StudentPanel({
                   </div>
                 </div>
 
-                {/* ── Indicador predictivo prominente ── */}
+                {/* ── Indicador predictivo ── */}
                 <div
                   style={{
                     margin: "0 12px 12px",

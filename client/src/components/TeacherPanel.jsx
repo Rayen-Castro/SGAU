@@ -10,7 +10,6 @@ export function TeacherPanel({
   guardarNotaServidor,
   calcularPromedioPonderado,
 }) {
-  // Helper para extraer string seguro de un campo
   const getString = (val) => {
     if (!val) return "";
     if (typeof val === "string") return val;
@@ -24,7 +23,7 @@ export function TeacherPanel({
       {/* Título */}
       <div style={{ textAlign: "center", marginBottom: "24px" }}>
         <h3 style={{ margin: 0, fontSize: "20px", color: "#2d3748" }}>
-          👨‍🏫 Módulo de Calificaciones Docente
+          Módulo de Calificaciones Docente
         </h3>
         <p style={{ color: "#718096", marginTop: "6px", fontSize: "14px" }}>
           Seleccione una de sus asignaturas titulares para abrir la planilla de
@@ -39,7 +38,6 @@ export function TeacherPanel({
           gap: "20px",
         }}
       >
-        {/* ── Columna izquierda: lista de ramos ── */}
         <div
           style={{
             background: "white",
@@ -124,7 +122,6 @@ export function TeacherPanel({
           )}
         </div>
 
-        {/* ── Columna derecha: planilla ── */}
         <div>
           {!asignaturaActiva ? (
             <div
@@ -157,7 +154,6 @@ export function TeacherPanel({
                 overflow: "hidden",
               }}
             >
-              {/* Header de la planilla */}
               <div
                 style={{
                   background: "linear-gradient(135deg, #004a99, #2b6cb0)",
@@ -202,7 +198,6 @@ export function TeacherPanel({
                 </div>
               </div>
 
-              {/* Mensaje de éxito/error */}
               {msgNotas && (
                 <div
                   style={{
@@ -409,7 +404,6 @@ export function TeacherPanel({
                   </tbody>
                 </table>
 
-                {/* Si no hay alumnos */}
                 {(!asignaturaActiva.estudiantesInscritos ||
                   asignaturaActiva.estudiantesInscritos.length === 0) && (
                   <div
@@ -425,7 +419,6 @@ export function TeacherPanel({
                 )}
               </div>
 
-              {/* Footer con tip */}
               <div
                 style={{
                   margin: "0 16px 16px",
@@ -439,11 +432,7 @@ export function TeacherPanel({
                 }}
               >
                 <span style={{ fontSize: "14px" }}>💡</span>
-                <span style={{ fontSize: "12px", color: "#2c5282" }}>
-                  <strong>Tips de Uso:</strong> Cambia cualquier nota y haz clic
-                  fuera del cuadro para guardarla. El promedio se recalcula al
-                  instante.
-                </span>
+                <span style={{ fontSize: "12px", color: "#2c5282" }}></span>
               </div>
             </div>
           )}

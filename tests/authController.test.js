@@ -7,7 +7,7 @@ jest.mock("../server/services/authService");
 // 2. Función auxiliar para simular el objeto 'res' (La Respuesta)
 const mockResponse = () => {
   const res = {};
-  res.status = jest.fn().mockReturnValue(res); // Permite encadenar res.status().json()
+  res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
   res.send = jest.fn().mockReturnValue(res);
   res.cookie = jest.fn().mockReturnValue(res);
@@ -20,19 +20,17 @@ describe("Pruebas unitarias para authController", () => {
   let res;
 
   beforeAll(() => {
-    // Silenciamos los console.error para no ensuciar la consola de tests
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterAll(() => {
-    // Restauramos el console.error original
     console.error.mockRestore();
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    req = { body: {}, cookies: {} }; // Reiniciamos req antes de cada test
-    res = mockResponse(); // Reiniciamos res antes de cada test
+    req = { body: {}, cookies: {} };
+    res = mockResponse();
   });
 
   // --- PRUEBAS: registrarUsuario ---
@@ -98,7 +96,6 @@ describe("Pruebas unitarias para authController", () => {
 
       await authController.login(req, res);
 
-      // Verificamos que se guardó la cookie
       expect(res.cookie).toHaveBeenCalledWith(
         "jwt_refresh",
         "refresh123",
@@ -112,7 +109,6 @@ describe("Pruebas unitarias para authController", () => {
     });
 
     test("Debería devolver 400 ante credenciales inválidas", async () => {
-      // Nota: Ajustamos el mock para que coincida con el texto exacto que busca tu if()
       authService.login.mockRejectedValue(
         new Error("Credenciales inválidas. Intente de nuevo."),
       );
@@ -142,7 +138,7 @@ describe("Pruebas unitarias para authController", () => {
   // --- PRUEBAS: refreshToken ---
   describe("refreshToken", () => {
     test("Debería devolver 401 si no hay cookie presente", async () => {
-      req.cookies = {}; // Sin cookie
+      req.cookies = {};
 
       await authController.refreshToken(req, res);
 

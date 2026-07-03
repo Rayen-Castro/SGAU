@@ -50,7 +50,6 @@ exports.login = async (correo, password) => {
     throw new Error("Usuario no encontrado");
   }
 
-  // Comparación de contraseñas
   const match = await bcrypt.compare(password, usuario.password);
   if (!match) {
     throw new Error("Contraseña incorrecta");
@@ -59,7 +58,6 @@ exports.login = async (correo, password) => {
   const payloadAccess = { id: usuario._id, rol: usuario.rol };
   const payloadRefresh = { id: usuario._id };
 
-  // Access Token (15 min) Refresh Token (7 days)
   const accessToken = jwt.sign(
     payloadAccess,
     process.env.JWT_SECRET || "firma_secreta_uct",

@@ -7,7 +7,6 @@ jest.mock("express", () => ({
   Router: () => mockRouter,
 }));
 
-// Simulamos los controladores para que no interfieran
 jest.mock("../server/controllers/authController", () => ({
   registrarUsuario: jest.fn(),
   login: jest.fn(),
@@ -17,10 +16,9 @@ jest.mock("../server/controllers/authController", () => ({
 
 describe("Pruebas de rutas: authRoutes", () => {
   test("Debería registrar correctamente las rutas de autenticación", () => {
-    // Al requerir el archivo, se ejecutarán los router.post y router.get simulados
     require("../server/routes/authRoutes");
 
-    // Verificamos que se hayan registrado las rutas principales
+    // registrarUsuario, login, refreshToken y obtenerUsuarios
     expect(mockRouter.post).toHaveBeenCalledWith(
       "/registrar",
       expect.any(Function),

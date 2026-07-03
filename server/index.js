@@ -10,7 +10,7 @@ app.use(express.json());
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("¡Conexión exitosa a MongoDB Atlas!"))
+  .then(() => console.log("Conexión exitosa a MongoDB Atlas"))
   .catch((err) => console.error("Error al conectar a MongoDB:", err));
 
 app.use("/api/auth", require("./routes/authRoutes"));

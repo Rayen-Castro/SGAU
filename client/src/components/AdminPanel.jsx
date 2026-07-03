@@ -247,7 +247,7 @@ export function AdminPanel({
 
         {/* Tabla de Usuarios en la BD */}
         <div>
-          <h3>👥 Usuarios en Base de Datos</h3>
+          <h3>Usuarios en Base de Datos</h3>
           <div
             style={{
               maxHeight: "230px",
@@ -321,7 +321,7 @@ export function AdminPanel({
       >
         {/* Formulario de Nueva Asignatura */}
         <div>
-          <h3>📘 Configurar Nueva Asignatura (Hito 2)</h3>
+          <h3>Configurar Nueva Asignatura</h3>
           {msgAsignatura && (
             <p
               style={{
@@ -362,7 +362,7 @@ export function AdminPanel({
                 value={facultadRamo}
                 onChange={(e) => {
                   setFacultadRamo(e.target.value);
-                  setCarreraRamo(""); // resetear carrera al cambiar facultad
+                  setCarreraRamo("");
                 }}
                 style={inputStyle}
               >
@@ -591,7 +591,7 @@ export function AdminPanel({
                     color: "#4a5568",
                   }}
                 >
-                  🎓 Inscribir Alumnos:
+                  Inscribir Alumnos:
                 </label>
                 <div style={{ fontSize: "11px" }}>
                   <span style={{ color: "#718096", marginRight: "5px" }}>
@@ -682,7 +682,7 @@ export function AdminPanel({
                 type="submit"
                 style={{
                   ...buttonStyle,
-                  backgroundColor: idAsignaturaEditando ? "#dd6b20" : "#d69e2e", // Naranja si edita, Amarillo si crea
+                  backgroundColor: idAsignaturaEditando ? "#dd6b20" : "#d69e2e",
                 }}
               >
                 {idAsignaturaEditando
@@ -690,14 +690,13 @@ export function AdminPanel({
                   : "Crear Asignatura"}
               </button>
 
-              {/* Si estamos editando, mostramos también un botón gris para cancelar */}
               {idAsignaturaEditando && (
                 <button
                   type="button"
                   onClick={cancelarEdicion}
                   style={{
                     ...buttonStyle,
-                    backgroundColor: "#718096", // Gris
+                    backgroundColor: "#718096",
                   }}
                 >
                   Cancelar Edición
@@ -730,7 +729,6 @@ export function AdminPanel({
                   boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                 }}
               >
-                {/* Nombre, código y botón ELIMINAR */}
                 <div
                   style={{
                     display: "flex",
@@ -763,7 +761,7 @@ export function AdminPanel({
                     <button
                       onClick={() => activarModoEdicion(asig)}
                       style={{
-                        background: "#3182ce", // Azul
+                        background: "#3182ce",
                         color: "white",
                         border: "none",
                         borderRadius: "4px",

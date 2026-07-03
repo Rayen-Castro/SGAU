@@ -25,7 +25,7 @@ const crearAdminUnico = async () => {
     });
 
     await nuevoAdmin.save();
-    console.log("🚀 ¡Administrador inicial creado con éxito!");
+    console.log("Administrador inicial creado con éxito");
     console.log("Correo: admin@uct.cl | Contraseña: admin1234");
 
     process.exit();

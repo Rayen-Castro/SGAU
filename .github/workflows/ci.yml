@@ -1,6 +1,6 @@
 name: Integracion Continua (CI)
 
-# 1. ¿Cuándo se ejecuta? Cada vez que hagas un push a la rama principal (main)
+# 1. ¿Cuándo se ejecuta? push a la rama main
 on:
   push:
     branches: ["main", "master"]
@@ -11,16 +11,16 @@ on:
 jobs:
   test-and-build:
     name: Ejecutar Tests
-    runs-on: ubuntu-latest # GitHub nos presta un servidor Linux virtual
+    runs-on: ubuntu-latest
 
     steps:
-      # Paso A: Descargar tu código en el servidor de GitHub
+      # Paso A: Descargar código en el servidor de GitHub
       - name: Descargar el repositorio
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Paso B: Instalar Node.js en ese servidor
+      # Paso B: Instalar Node.js en servidor
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:

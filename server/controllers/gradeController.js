@@ -6,7 +6,6 @@ exports.guardarCalificacion = async (req, res) => {
   try {
     const resultado = await gradeService.guardarCalificacion(req.body);
 
-    // El controlador decide el código HTTP según lo que hizo el servicio
     if (resultado.accion === "actualizada") {
       return res.json({
         success: true,
@@ -23,7 +22,6 @@ exports.guardarCalificacion = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    // Capturamos el error de validación específico
     if (error.message.includes("entre 1.0 y 7.0")) {
       return res.status(400).json({
         success: false,
