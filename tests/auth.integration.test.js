@@ -1,7 +1,7 @@
 // server/tests/auth.integration.test.js
 const request = require("supertest");
 const express = require("express");
-const authRoutes = require("../routes/authRoutes");
+const authRoutes = require("../server/routes/authRoutes");
 
 // 1. Levantamos una versión de prueba de tu aplicación Express
 const app = express();
