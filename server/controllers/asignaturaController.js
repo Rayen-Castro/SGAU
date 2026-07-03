@@ -99,7 +99,7 @@ exports.actualizarAsignatura = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes("ponderaciones")) {
+    if (error.message?.includes("ponderaciones")) {
       return res.status(400).json({
         success: false,
         msg: error.message,
