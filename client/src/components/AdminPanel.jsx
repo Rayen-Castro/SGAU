@@ -30,6 +30,11 @@ export function AdminPanel({
   estudiantesSeleccionados,
   manejarCheckboxEstudiante,
   manejarCrearAsignatura,
+  manejarEliminarAsignatura,
+  idAsignaturaEditando,
+  activarModoEdicion,
+  cancelarEdicion,
+  manejarActualizarAsignatura,
   docentesDisponibles,
   listaAsignaturas,
   tieneAyudantia,
@@ -331,7 +336,11 @@ export function AdminPanel({
             </p>
           )}
           <form
-            onSubmit={manejarCrearAsignatura}
+            onSubmit={
+              idAsignaturaEditando
+                ? manejarActualizarAsignatura
+                : manejarCrearAsignatura
+            }
             style={{
               background: "#f7fafc",
               padding: "20px",
@@ -668,12 +677,33 @@ export function AdminPanel({
               </div>
             </div>
 
-            <button
-              type="submit"
-              style={{ ...buttonStyle, backgroundColor: "#d69e2e" }}
-            >
-              Crear Asignatura
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                type="submit"
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: idAsignaturaEditando ? "#dd6b20" : "#d69e2e", // Naranja si edita, Amarillo si crea
+                }}
+              >
+                {idAsignaturaEditando
+                  ? "💾 Guardar Cambios"
+                  : "Crear Asignatura"}
+              </button>
+
+              {/* Si estamos editando, mostramos también un botón gris para cancelar */}
+              {idAsignaturaEditando && (
+                <button
+                  type="button"
+                  onClick={cancelarEdicion}
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: "#718096", // Gris
+                  }}
+                >
+                  Cancelar Edición
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
@@ -700,7 +730,7 @@ export function AdminPanel({
                   boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                 }}
               >
-                {/* Nombre y código */}
+                {/* Nombre, código y botón ELIMINAR */}
                 <div
                   style={{
                     display: "flex",
@@ -712,17 +742,58 @@ export function AdminPanel({
                   <strong style={{ fontSize: "13px", color: "#2d3748" }}>
                     {asig.nombreAsignatura}
                   </strong>
-                  <span
+                  <div
                     style={{
-                      fontSize: "10px",
-                      background: "#edf2f7",
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      color: "#718096",
+                      display: "flex",
+                      gap: "8px",
+                      alignItems: "center",
                     }}
                   >
-                    {asig.codigo}
-                  </span>
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        background: "#edf2f7",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        color: "#718096",
+                      }}
+                    >
+                      {asig.codigo}
+                    </span>
+                    <button
+                      onClick={() => activarModoEdicion(asig)}
+                      style={{
+                        background: "#3182ce", // Azul
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "3px 6px",
+                        fontSize: "10px",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                      }}
+                      title="Editar Asignatura"
+                    >
+                      ✏️ Editar
+                    </button>
+                    {/* 2. NUEVO BOTÓN DE ELIMINAR */}
+                    <button
+                      onClick={() => manejarEliminarAsignatura(asig._id)}
+                      style={{
+                        background: "#e53e3e",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "3px 6px",
+                        fontSize: "10px",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                      }}
+                      title="Eliminar Asignatura"
+                    >
+                      ✕ Eliminar
+                    </button>
+                  </div>
                 </div>
 
                 {/* Docente */}

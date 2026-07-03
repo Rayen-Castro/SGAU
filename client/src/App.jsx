@@ -109,6 +109,7 @@ function App() {
           estudiantesSeleccionados={app.estudiantesSeleccionados}
           manejarCheckboxEstudiante={app.manejarCheckboxEstudiante}
           manejarCrearAsignatura={app.manejarCrearAsignatura}
+          manejarEliminarAsignatura={app.manejarEliminarAsignatura}
           docentesDisponibles={app.docentesDisponibles}
           listaAsignaturas={app.listaAsignaturas}
           facultadesYCarreras={app.facultadesYCarreras}
@@ -116,6 +117,10 @@ function App() {
           setFacultadRamo={app.setFacultadRamo}
           carreraRamo={app.carreraRamo}
           setCarreraRamo={app.setCarreraRamo}
+          idAsignaturaEditando={app.idAsignaturaEditando}
+          activarModoEdicion={app.activarModoEdicion}
+          cancelarEdicion={app.cancelarEdicion}
+          manejarActualizarAsignatura={app.manejarActualizarAsignatura}
         />
       )}
 

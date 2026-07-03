@@ -58,6 +58,8 @@ export function useAcademicApp() {
   const [tieneExamenIntegral, setTieneExamenIntegral] = useState(false);
   const [porcentajeExamenIntegral, setPorcentajeExamenIntegral] = useState(35);
 
+  const [idAsignaturaEditando, setIdAsignaturaEditando] = useState(null);
+
   // ==========================================
   // 4. ESTADOS EXCLUSIVOS DEL DOCENTE
   // ==========================================
@@ -379,6 +381,38 @@ export function useAcademicApp() {
     }
   };
 
+  // 2. Función para limpiar el formulario al cancelar
+  const cancelarEdicion = () => {
+    setIdAsignaturaEditando(null);
+    setNombreAsignatura("");
+    setCodigoAsignatura("");
+    setPeriodo("2026-1");
+    setDocenteSeleccionado("");
+    // Si usas más campos como carreraRamo o facultadRamo, puedes limpiarlos aquí:
+    setFacultadRamo("");
+    setCarreraRamo("");
+  };
+
+  // 3. Función para activar el modo edición al pulsar el botón azul
+  const activarModoEdicion = (asig) => {
+    setIdAsignaturaEditando(asig._id);
+    setNombreAsignatura(asig.nombreAsignatura);
+    setCodigoAsignatura(asig.codigo);
+    setPeriodo(asig.periodo);
+
+    const idDocente = asig.docente?._id || asig.docente || "";
+    setDocenteSeleccionado(idDocente);
+
+    setFacultadRamo(asig.facultad || "");
+    setCarreraRamo(asig.carrera || "");
+
+    if (asig.estudiantes && setEstudiantesSeleccionados) {
+      // Si viene un array de objetos o IDs, mapeamos solo sus IDs strings
+      const idsEstudiantes = asig.estudiantes.map((est) => est._id || est);
+      setEstudiantesSeleccionados(idsEstudiantes);
+    }
+  };
+
   const manejarCrearAsignatura = async (e) => {
     e.preventDefault();
     setMsgAsignatura("");
@@ -407,7 +441,7 @@ export function useAcademicApp() {
           nombreAsignatura,
           codigo: codigoAsignatura,
           periodo,
-          docenteId: docenteSeleccionado,
+          docente: docenteSeleccionado,
           estudiantesIds: estudiantesSeleccionados,
           evaluaciones,
           tieneAyudantia, // nuevo
@@ -430,6 +464,113 @@ export function useAcademicApp() {
       setMsgAsignatura(
         "❌ Error de red: Asegúrate de que las evaluaciones tengan nombre y que el backend esté corriendo.",
       );
+    }
+  };
+
+  // 4. Función que envía los cambios al Backend (PUT)
+  const manejarActualizarAsignatura = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+
+    // Validación preventiva: Si el estado del docente está vacío, no dejamos enviar la petición
+    if (!docenteSeleccionado) {
+      setMsgAsignatura(
+        "❌ Error: Debes seleccionar un docente para la asignatura.",
+      );
+      return;
+    }
+
+    try {
+      const respuesta = await fetch(
+        `http://localhost:5000/api/asignatura/${idAsignaturaEditando}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nombreAsignatura: nombreAsignatura,
+            codigo: codigoAsignatura,
+            periodo: periodo,
+            docente: docenteSeleccionado,
+            facultad: facultadRamo,
+            carrera: carreraRamo,
+            tieneAyudantia: tieneAyudantia,
+            ayudanteId: ayudanteSeleccionado || null,
+            tieneExamenIntegral: tieneExamenIntegral,
+            porcentajeExamenIntegral: porcentajeExamenIntegral,
+            evaluaciones: evaluaciones,
+
+            estudiantesInscritos: estudiantesSeleccionados,
+          }),
+        },
+      );
+
+      if (!respuesta.ok) {
+        const textoError = await respuesta.text();
+        if (textoError.startsWith("<")) {
+          throw new Error("El servidor devolvió un error de ruta (HTML).");
+        }
+        const objetoError = JSON.parse(textoError);
+        throw new Error(objetoError.msg || "Error al actualizar");
+      }
+
+      const resultado = await respuesta.json();
+
+      if (resultado.success) {
+        // Sincronizamos React con la asignatura modificada que nos devuelve Express
+        setListaAsignaturas((prevAsignaturas) =>
+          prevAsignaturas.map((asig) =>
+            asig._id === idAsignaturaEditando ? resultado.asignatura : asig,
+          ),
+        );
+
+        setMsgAsignatura(resultado.msg);
+        cancelarEdicion(); // Limpiamos el formulario y cerramos el modo edición
+      }
+    } catch (error) {
+      console.error("Error en manejarActualizarAsignatura:", error);
+      setMsgAsignatura(error.message);
+    }
+  };
+
+  // 2. ELIMINAR ASIGNATURA
+  const manejarEliminarAsignatura = async (id) => {
+    // Agregamos una confirmación nativa antes de proceder con el borrado en cascada
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas eliminar permanentemente esta asignatura?",
+      )
+    ) {
+      return { success: false };
+    }
+
+    try {
+      const respuesta = await fetch(
+        `http://localhost:5000/api/asignatura/${idAsignaturaEditando}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const resultado = await respuesta.json();
+
+      if (!respuesta.ok) {
+        throw new Error(
+          resultado.msg || "Error al intentar eliminar la asignatura",
+        );
+      }
+
+      // Filtramos el estado local eliminando el documento borrado
+      setListaAsignaturas((prevAsignaturas) =>
+        prevAsignaturas.filter((asig) => asig._id !== id),
+      );
+
+      setMsgAsignatura("Asignatura eliminada correctamente.");
+      return { success: true };
+    } catch (error) {
+      console.error("Error en manejarEliminarAsignatura:", error);
+      setMsgAsignatura(error.message);
+      return { success: false, error: error.message };
     }
   };
 
@@ -636,6 +777,12 @@ export function useAcademicApp() {
     actualizarFilaEvaluacion,
     manejarCheckboxEstudiante,
     manejarCrearAsignatura,
+    manejarActualizarAsignatura,
+    manejarEliminarAsignatura,
+    idAsignaturaEditando,
+    activarModoEdicion,
+    cancelarEdicion,
+    manejarActualizarAsignatura,
     buscarNotaEnBase,
     guardarNotaServidor,
     calcularPromedioPonderado,

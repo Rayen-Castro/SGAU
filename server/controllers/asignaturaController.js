@@ -69,3 +69,74 @@ exports.obtenerAsignaturasEstudiante = async (req, res) => {
     res.status(500).send("Error al obtener las asignaturas del estudiante");
   }
 };
+
+// 5. ACTUALIZAR ASIGNATURA
+exports.actualizarAsignatura = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Delegamos la actualización completa al servicio pasándole el ID y los nuevos datos
+    const asignaturaActualizada = await asignaturaService.actualizarAsignatura(
+      id,
+      req.body,
+    );
+
+    if (!asignaturaActualizada) {
+      return res.status(404).json({
+        success: false,
+        msg: "No se encontró la asignatura especificada.",
+      });
+    }
+
+    res.json({
+      success: true,
+      msg: `Asignatura [${asignaturaActualizada.nombreAsignatura}] modificada con éxito.`,
+      asignatura: asignaturaActualizada,
+    });
+  } catch (error) {
+    console.error("Error en actualizarAsignatura:", error);
+
+    // Capturamos el error de llave duplicada de MongoDB (por si cambian el código a uno que ya existe)
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        msg: "El nombre o código de la asignatura ya existe.",
+      });
+    }
+
+    // Capturamos el error de validación de ponderaciones (suma != 100%) lanzado desde tu capa de servicio
+    if (error.message && error.message.includes("ponderaciones")) {
+      return res.status(400).json({
+        success: false,
+        msg: error.message,
+      });
+    }
+
+    res.status(500).send("Error al actualizar la asignatura");
+  }
+};
+
+// 6. ELIMINAR ASIGNATURA
+exports.eliminarAsignatura = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Delegamos la eliminación al servicio
+    const asignaturaEliminada = await asignaturaService.eliminarAsignatura(id);
+
+    if (!asignaturaEliminada) {
+      return res.status(404).json({
+        success: false,
+        msg: "No se encontró la asignatura especificada.",
+      });
+    }
+
+    res.json({
+      success: true,
+      msg: "Asignatura eliminada correctamente.",
+    });
+  } catch (error) {
+    console.error("Error en eliminarAsignatura:", error);
+    res.status(500).send("Error al eliminar la asignatura");
+  }
+};

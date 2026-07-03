@@ -2,33 +2,28 @@ const express = require("express");
 const router = express.Router();
 const asignaturaController = require("../controllers/asignaturaController");
 
-// Ruta para crear (POST a /api/subjects/crear)
+// 1. Ruta para crear (POST a /api/subjects/crear)
 router.post("/crear", asignaturaController.crearAsignatura);
 
-// Ruta para listar (GET a /api/subjects)
+// 2. Ruta para listar todas las asignaturas (GET a /api/subjects)
 router.get("/", asignaturaController.obtenerAsignaturas);
 
+// 3. Ruta para obtener asignaturas de un docente específico
 router.get(
   "/docente/:docenteId",
   asignaturaController.obtenerAsignaturasDocente,
 );
 
+// 4. Ruta para obtener asignaturas de un estudiante específico
 router.get(
   "/estudiante/:estudianteId",
   asignaturaController.obtenerAsignaturasEstudiante,
 );
 
-// Ruta para obtener asignaturas de un docente específico
-router.get("/docente/:docenteId", async (req, res) => {
-  try {
-    const Subject = require("../models/Subject");
-    const asignaturas = await Subject.find({
-      docente: req.params.docenteId,
-    }).populate("estudiantesInscritos", "nombre correo carrera");
-    res.json({ success: true, asignaturas });
-  } catch (error) {
-    res.status(500).send("Error del servidor");
-  }
-});
+// 5. Ruta para actualizar una asignatura (PUT a /api/asignatura/:id)
+router.put("/:id", asignaturaController.actualizarAsignatura);
+
+// 6. Ruta para eliminar una asignatura (DELETE a /api/subjects/:id)
+router.delete("/:id", asignaturaController.eliminarAsignatura);
 
 module.exports = router;

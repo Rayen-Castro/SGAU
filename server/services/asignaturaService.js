@@ -41,3 +41,35 @@ exports.obtenerPorEstudiante = async (estudianteId) => {
     .populate("docente", "nombre correo")
     .lean();
 };
+
+// 5. ACTUALIZAR ASIGNATURA (Con Validación de Regla de Negocio)
+exports.actualizarAsignatura = async (id, datosActualizados) => {
+  // Si la actualización incluye el arreglo de evaluaciones, volvemos a exigir el 100%
+  if (datosActualizados.evaluaciones) {
+    const sumaPonderaciones = datosActualizados.evaluaciones.reduce(
+      (total, evaluacion) => total + Number(evaluacion.ponderacion),
+      0,
+    );
+
+    if (sumaPonderaciones !== 100) {
+      throw new Error(
+        `La suma de las ponderaciones actualizadas es ${sumaPonderaciones}%. Debe ser exactamente 100%.`,
+      );
+    }
+  }
+
+  // Realizamos la actualización en MongoDB
+  // { new: true } hace que retorne el documento ya modificado
+  // { runValidators: true } asegura que se respeten los límites del modelo Mongoose
+  return await Asignatura.findByIdAndUpdate(id, datosActualizados, {
+    new: true,
+    runValidators: true,
+  })
+    .populate("docente", "nombre correo")
+    .populate("estudiantesInscritos", "nombre correo carrera");
+};
+
+// 6. ELIMINAR ASIGNATURA
+exports.eliminarAsignatura = async (id) => {
+  return await Asignatura.findByIdAndDelete(id);
+};
