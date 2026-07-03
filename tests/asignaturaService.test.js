@@ -1,26 +1,25 @@
+// tests/asignaturaService.test.js
 const asignaturaService = require("../server/services/asignaturaService");
 const Asignatura = require("../server/models/asignatura");
 
+// Definimos el objeto query simulado fuera para poder manipular sus implementaciones dinámicamente en los tests
+const mockQuery = {
+  populate: jest.fn().mockReturnThis(), // Permite encadenar .populate().populate()
+  lean: jest.fn().mockReturnThis(), // Permite encadenar .lean()
+  then: jest.fn(), // Intercepta el 'await' de la consulta
+};
+
 // Simulamos el modelo Asignatura de Mongoose
 jest.mock("../server/models/asignatura", () => {
-  // 1. Simulamos el encadenamiento de funciones (find -> populate -> lean)
-  const mockQuery = {
-    populate: jest.fn().mockReturnThis(), // Permite hacer .populate().populate()
-    lean: jest.fn().mockResolvedValue([{ nombreAsignatura: "Simulación" }]), // Retorna un array falso al usar lean()
-  };
-
-  // Hacemos que la cadena se pueda resolver con un 'await' aunque no termine en lean()
-  mockQuery.then = function (resolve) {
-    resolve([{ nombreAsignatura: "Simulación" }]);
-  };
-
-  // 2. Simulamos la creación de una nueva Asignatura (new Asignatura)
   const MockModel = function (datos) {
     Object.assign(this, datos);
     this.save = jest.fn().mockResolvedValue(this);
   };
 
+  // Mapeamos los métodos estáticos del modelo Mongoose a nuestros mocks
   MockModel.find = jest.fn().mockReturnValue(mockQuery);
+  MockModel.findByIdAndUpdate = jest.fn().mockReturnValue(mockQuery);
+  MockModel.findByIdAndDelete = jest.fn();
 
   return MockModel;
 });
@@ -28,9 +27,16 @@ jest.mock("../server/models/asignatura", () => {
 describe("Pruebas unitarias para asignaturaService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Configuración por defecto: Las consultas de lectura (find) devuelven un Array
+    mockQuery.then.mockImplementation(function (resolve) {
+      resolve([{ nombreAsignatura: "Simulación" }]);
+    });
   });
 
-  // --- PRUEBAS: crearAsignatura ---
+  // =========================================================
+  // --- PRUEBAS: crearAsignatura
+  // =========================================================
   describe("crearAsignatura", () => {
     test("Debería lanzar error si las ponderaciones NO suman 100", async () => {
       const datosIncompletos = {
@@ -59,11 +65,13 @@ describe("Pruebas unitarias para asignaturaService", () => {
       const resultado = await asignaturaService.crearAsignatura(datosCorrectos);
 
       expect(resultado.nombreAsignatura).toBe("Arquitectura de Software");
-      expect(resultado.save).toHaveBeenCalledTimes(1); // Verificamos que llamó a Mongoose
+      expect(resultado.save).toHaveBeenCalledTimes(1);
     });
   });
 
-  // --- PRUEBAS: obtenerTodas ---
+  // =========================================================
+  // --- PRUEBAS: obtenerTodas
+  // =========================================================
   describe("obtenerTodas", () => {
     test("Debería obtener todas las asignaturas usando populate", async () => {
       const resultado = await asignaturaService.obtenerTodas();
@@ -74,7 +82,9 @@ describe("Pruebas unitarias para asignaturaService", () => {
     });
   });
 
-  // --- PRUEBAS: obtenerPorDocente ---
+  // =========================================================
+  // --- PRUEBAS: obtenerPorDocente
+  // =========================================================
   describe("obtenerPorDocente", () => {
     test("Debería buscar las asignaturas filtrando por el ID del docente", async () => {
       await asignaturaService.obtenerPorDocente("docente123");
@@ -83,7 +93,9 @@ describe("Pruebas unitarias para asignaturaService", () => {
     });
   });
 
-  // --- PRUEBAS: obtenerPorEstudiante ---
+  // =========================================================
+  // --- PRUEBAS: obtenerPorEstudiante
+  // =========================================================
   describe("obtenerPorEstudiante", () => {
     test("Debería buscar las asignaturas del estudiante usando lean", async () => {
       await asignaturaService.obtenerPorEstudiante("estudiante456");
@@ -91,6 +103,117 @@ describe("Pruebas unitarias para asignaturaService", () => {
       expect(Asignatura.find).toHaveBeenCalledWith({
         estudiantesInscritos: "estudiante456",
       });
+    });
+  });
+
+  // =========================================================
+  // --- NUEVO: PRUEBAS PARA actualizarAsignatura (HITO 3)
+  // =========================================================
+  describe("actualizarAsignatura", () => {
+    test("Debería lanzar error si las ponderaciones actualizadas NO suman 100%", async () => {
+      const datosActualizados = {
+        evaluaciones: [
+          { nombreEval: "Solemne 1", ponderacion: 30 },
+          { nombreEval: "Solemne 2", ponderacion: 40 }, // Suma 70%
+        ],
+      };
+
+      await expect(
+        asignaturaService.actualizarAsignatura("asig123", datosActualizados),
+      ).rejects.toThrow(
+        "La suma de las ponderaciones actualizadas es 70%. Debe ser exactamente 100%.",
+      );
+    });
+
+    test("Debería actualizar con éxito si las evaluaciones actualizadas suman exactamente 100%", async () => {
+      const datosActualizados = {
+        evaluaciones: [
+          { nombreEval: "Solemne 1", ponderacion: 60 },
+          { nombreEval: "Solemne 2", ponderacion: 40 }, // Suma 100%
+        ],
+      };
+
+      // Forzamos a que el await de la query devuelva un único objeto en vez de un array
+      mockQuery.then.mockImplementation(function (resolve) {
+        resolve({
+          _id: "asig123",
+          nombreAsignatura: "Estructuras de Datos Renovada",
+        });
+      });
+
+      const resultado = await asignaturaService.actualizarAsignatura(
+        "asig123",
+        datosActualizados,
+      );
+
+      expect(Asignatura.findByIdAndUpdate).toHaveBeenCalledWith(
+        "asig123",
+        datosActualizados,
+        { new: true, runValidators: true },
+      );
+      expect(resultado.nombreAsignatura).toBe("Estructuras de Datos Renovada");
+    });
+
+    test("Debería actualizar con éxito si NO se modifican las evaluaciones (ej. cambiar solo periodo o docente)", async () => {
+      const datosActualizados = {
+        periodo: "2026-2",
+        docente: "nuevoDocente999",
+      };
+
+      mockQuery.then.mockImplementation(function (resolve) {
+        resolve({ _id: "asig123", periodo: "2026-2" });
+      });
+
+      const resultado = await asignaturaService.actualizarAsignatura(
+        "asig123",
+        datosActualizados,
+      );
+
+      expect(Asignatura.findByIdAndUpdate).toHaveBeenCalledTimes(1);
+      expect(resultado.periodo).toBe("2026-2");
+    });
+
+    test("Debería retornar null si la asignatura solicitada para actualizar no existe en la BD", async () => {
+      const datosActualizados = { nombreAsignatura: "Fantasía" };
+
+      // Simulamos que findByIdAndUpdate no encontró nada (devuelve null)
+      mockQuery.then.mockImplementation(function (resolve) {
+        resolve(null);
+      });
+
+      const resultado = await asignaturaService.actualizarAsignatura(
+        "idInexistente",
+        datosActualizados,
+      );
+      expect(resultado).toBeNull();
+    });
+  });
+
+  // =========================================================
+  // --- NUEVO: PRUEBAS PARA eliminarAsignatura (HITO 3)
+  // =========================================================
+  describe("eliminarAsignatura", () => {
+    test("Debería llamar a findByIdAndDelete con el ID correcto y eliminar el ramo", async () => {
+      const asignaturaEliminadaMock = {
+        _id: "asig000",
+        nombreAsignatura: "Ramo Borrado",
+      };
+      Asignatura.findByIdAndDelete.mockResolvedValue(asignaturaEliminadaMock);
+
+      const resultado = await asignaturaService.eliminarAsignatura("asig000");
+
+      expect(Asignatura.findByIdAndDelete).toHaveBeenCalledWith("asig000");
+      expect(resultado).toEqual(asignaturaEliminadaMock);
+    });
+
+    test("Debería retornar null si se intenta eliminar una asignatura que no existe", async () => {
+      Asignatura.findByIdAndDelete.mockResolvedValue(null);
+
+      const resultado =
+        await asignaturaService.eliminarAsignatura("idFalso999");
+
+      expect(Asignatura.findByIdAndDelete).toHaveBeenCalledWith("idFalso999");
+      expect(resultado).toBeNull();
     });
   });
 });
