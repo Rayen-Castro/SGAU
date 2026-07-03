@@ -1,15 +1,17 @@
 // tests/asignaturaService.test.js
-const asignaturaService = require("../server/services/asignaturaService");
-const Asignatura = require("../server/models/asignatura");
 
-// Definimos el objeto query simulado fuera para poder manipular sus implementaciones dinámicamente en los tests
+// 1. ⚠️ PRIMERO DEFINIMOS EL MOCKQUERY (Arriba de todo para evitar el ReferenceError)
 const mockQuery = {
   populate: jest.fn().mockReturnThis(), // Permite encadenar .populate().populate()
   lean: jest.fn().mockReturnThis(), // Permite encadenar .lean()
   then: jest.fn(), // Intercepta el 'await' de la consulta
 };
 
-// Simulamos el modelo Asignatura de Mongoose
+// 2. LUEGO IMPORTAMOS LOS ARCHIVOS DEL PROYECTO
+const asignaturaService = require("../server/services/asignaturaService");
+const Asignatura = require("../server/models/asignatura");
+
+// 3. CONFIGURAMOS EL MOCK DE JEST
 jest.mock("../server/models/asignatura", () => {
   const MockModel = function (datos) {
     Object.assign(this, datos);
@@ -107,7 +109,7 @@ describe("Pruebas unitarias para asignaturaService", () => {
   });
 
   // =========================================================
-  // --- NUEVO: PRUEBAS PARA actualizarAsignatura (HITO 3)
+  // --- PRUEBAS PARA actualizarAsignatura
   // =========================================================
   describe("actualizarAsignatura", () => {
     test("Debería lanzar error si las ponderaciones actualizadas NO suman 100%", async () => {
@@ -133,7 +135,6 @@ describe("Pruebas unitarias para asignaturaService", () => {
         ],
       };
 
-      // Forzamos a que el await de la query devuelva un único objeto en vez de un array
       mockQuery.then.mockImplementation(function (resolve) {
         resolve({
           _id: "asig123",
@@ -176,7 +177,6 @@ describe("Pruebas unitarias para asignaturaService", () => {
     test("Debería retornar null si la asignatura solicitada para actualizar no existe en la BD", async () => {
       const datosActualizados = { nombreAsignatura: "Fantasía" };
 
-      // Simulamos que findByIdAndUpdate no encontró nada (devuelve null)
       mockQuery.then.mockImplementation(function (resolve) {
         resolve(null);
       });
@@ -190,7 +190,7 @@ describe("Pruebas unitarias para asignaturaService", () => {
   });
 
   // =========================================================
-  // --- NUEVO: PRUEBAS PARA eliminarAsignatura (HITO 3)
+  // --- PRUEBAS PARA eliminarAsignatura
   // =========================================================
   describe("eliminarAsignatura", () => {
     test("Debería llamar a findByIdAndDelete con el ID correcto y eliminar el ramo", async () => {
